@@ -164,7 +164,8 @@ export function getPrefix(sysName) {
 }
 
 export function getNextSysName(prefix, usedNames) {
+  const nameSet = usedNames instanceof Set ? usedNames : new Set(usedNames);
   let i = 1;
-  while (usedNames.has(`${prefix}${String(i).padStart(2,"0")}`)) i++;
+  while (nameSet.has(`${prefix}${String(i).padStart(2,"0")}`)) i++;
   return `${prefix}${String(i).padStart(2,"0")}`;
 }
