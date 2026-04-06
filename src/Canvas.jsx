@@ -1335,7 +1335,7 @@ export default function AVCanvas() {
                   width:lb.w, height:lb.h,
                   pointerEvents:"none", zIndex:1
                 }}
-                onContextMenu={ev => ev.stopPropagation()}>
+>
                 {/* Dashed border — purely visual, no pointer events */}
                 <div style={{
                   position:"absolute", inset:0,

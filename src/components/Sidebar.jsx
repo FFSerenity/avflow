@@ -194,7 +194,6 @@ function LibItem({ eq, onDragStart, blocks }) {
           )}
         </div>
       )}
-      <TinyBlock eq={eq} />
     </div>
   );
 }
