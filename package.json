@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "dev:lib": "vite --config library-dev/vite.config.js",
     "build:lib": "vite build --config library-dev/vite.config.js",
-    "build:all": "vite build && vite build --config library-dev/vite.config.js"
+    "build:all": "vite build && vite build --config library-dev/vite.config.js && cp -r database dist/database"
   },
   "dependencies": {
     "react": "^18.2.0",
