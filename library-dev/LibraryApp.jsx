@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { SAMPLE_LIBRARY } from "../src/components/Sidebar.jsx";
 import { fsaSupported, loadHandle, saveHandle, verifyPermission, pickDirectory,
-         readAllBlocks, saveBlock, deleteBlock } from "../src/db.js";
+         readAllBlocks, saveBlock, deleteBlock, fetchFromUrl } from "../src/db.js";
 
 // ── CSS variables ─────────────────────────────────────────────────────────────
 const _style = document.createElement("style");
@@ -615,6 +615,7 @@ export default function LibraryApp() {
   // On mount: restore persisted directory handle
   useEffect(() => {
     (async () => {
+      try { const f=await fetchFromUrl("/database/"); if(f.length>0){setLibrary(f);setDbStatus("connected");} } catch(_){}
       if (!fsaSupported) return;
       const h = await loadHandle().catch(() => null);
       if (!h) return;

@@ -113,14 +113,13 @@ export default function Sidebar({ blocks, onDragStart }) {
   // On mount: restore persisted directory handle and load blocks
   useEffect(() => {
     (async () => {
-      if (!fsaSupported) {
-        // Try URL fetch from /database/
-        try {
-          const fetched = await fetchFromUrl("/database/");
-          if (fetched.length > 0) { setLibrary(fetched); setDbStatus("connected"); }
-        } catch (_) {}
-        return;
-      }
+      // Always try URL fetch as baseline (works on Netlify even without FSA folder)
+      try {
+        const fetched = await fetchFromUrl("/database/");
+        if (fetched.length > 0) { setLibrary(fetched); setDbStatus("connected"); }
+      } catch (_) {}
+
+      if (!fsaSupported) return;
       const h = await loadHandle().catch(() => null);
       if (!h) return;
       const ok = await verifyPermission(h).catch(() => false);
