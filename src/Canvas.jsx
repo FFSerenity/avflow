@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { SIGNAL_COLORS, CABLE_PREFIX, GRID, snap, snapG, ROW_H, HEADER_H, FOOTER_H, BODY_W, PAD_W, STUB_W, DOT_R, ANNOT_COLORS } from "./constants.js";
 import { expandGroups, getPinPositions, measureText, defaultVx, smartVx, buildWaypoints, buildPath, addTurn, removeTurn, normalizeWire, cloudPath, pinLabel, getPrefix, getNextSysName } from "./geometry.js";
 import BlockView from "./components/BlockView.jsx";
-import Sidebar from "./components/Sidebar.jsx";
+import Sidebar, { SAMPLE_LIBRARY } from "./components/Sidebar.jsx";
 
 
 
@@ -104,6 +104,19 @@ export default function AVCanvas() {
 
   const [hoveredPin, setHoveredPin] = useState(null); // { blockId, pinId }
 
+  // Equipment swap state
+  const [swapModal,       setSwapModal]       = useState(null); // { blockId }
+  const [swapSearch,      setSwapSearch]       = useState('');
+  const [swapCat,         setSwapCat]          = useState('All');
+  const [swapMfr,         setSwapMfr]          = useState('All');
+  const [orphanWires,     setOrphanWires]      = useState([]);   // persisted orphan ends
+  const [draggingOrphan,  setDraggingOrphan]   = useState(null); // { orphanId, mouseCanvasX, mouseCanvasY }
+  const draggingOrphanRef = useRef(null);
+
+
+  // Equipment swap state
+
+
   // Wire segment dragging
   const wireDrag = useRef(null); // { wireId, startMouseX, startVx }
 
@@ -189,6 +202,17 @@ export default function AVCanvas() {
 
   // ── Mouse events on canvas ────────────────────────────────────────────────
   const onCanvasMouseMove = useCallback((e) => {
+    // Orphan drag — update mouse canvas position
+    if (draggingOrphanRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const cx = (e.clientX - rect.left - pan.x) / zoom;
+      const cy = (e.clientY - rect.top  - pan.y) / zoom;
+      draggingOrphanRef.current = { ...draggingOrphanRef.current, mouseCanvasX: cx, mouseCanvasY: cy };
+      setDraggingOrphan({ ...draggingOrphanRef.current });
+      const p = findPin(cx, cy);
+      setHoveredPin(p ? { blockId: p.blockId, pinId: p.pinId } : null);
+      return;
+    }
     // Block canvas interactions while text editing
     if (editingAnnotRef.current || editingLocBoxRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
@@ -754,6 +778,40 @@ export default function AVCanvas() {
   }, [pan, toCanvas, findPinAny, blocks, activeTool, annotColor]);
 
   const onCanvasMouseUp = useCallback((e) => {
+    // Complete orphan drag-and-drop reconnect
+    if (draggingOrphanRef.current) {
+      const drag = draggingOrphanRef.current;
+      const rect = canvasRef.current.getBoundingClientRect();
+      const cx = (e.clientX - rect.left - pan.x) / zoom;
+      const cy = (e.clientY - rect.top  - pan.y) / zoom;
+      const ow = orphanWires.find(o => o.id === drag.orphanId);
+      if (ow) {
+        const target = findPin(cx, cy);
+        if (target) {
+          const fromBlockId = ow.orphanEnd === 'from' ? target.blockId : ow.aliveBlockId;
+          const fromPinId   = ow.orphanEnd === 'from' ? target.pinId   : ow.alivePinId;
+          const toBlockId   = ow.orphanEnd === 'to'   ? target.blockId : ow.aliveBlockId;
+          const toPinId     = ow.orphanEnd === 'to'   ? target.pinId   : ow.alivePinId;
+          const pfx = ow.cableNum ? '' : (CABLE_PREFIX[ow.signal] || 9);
+          const cableNum = ow.cableNum || `${pfx}${String(_cableIdx++).padStart(3,'0')}`;
+          setWires(ws => [...ws, {
+            id: `w-${_wireId++}`,
+            fromBlockId, fromPinId, toBlockId, toPinId,
+            feather: ow.feather,
+            vx: null, vx2: null, turns: [],
+            cableNum,
+            signal: ow.signal,
+            color: SIGNAL_COLORS[ow.signal] || '#888780',
+          }]);
+          setOrphanWires(os => os.filter(o => o.id !== drag.orphanId));
+        }
+      }
+      draggingOrphanRef.current = null;
+      setDraggingOrphan(null);
+      setHoveredPin(null);
+      return;
+    }
+
     const wd2 = wireDrag.current;
     const wasDraggingBlocks = !!dragging.current;
     panning.current = null;
@@ -1155,6 +1213,7 @@ export default function AVCanvas() {
         setSelAnnots(new Set()); setEditingAnnot(null);
         clearSel(); setContextMenu(null);
         marqueeRef.current = null; setMarquee(null);
+        draggingOrphanRef.current = null; setDraggingOrphan(null); setSwapModal(null);
       }
     };
     window.addEventListener("keydown", handler);
@@ -1163,6 +1222,7 @@ export default function AVCanvas() {
 
   // Cursor style
   const getCursor = () => {
+    if (draggingOrphan || draggingOrphanRef.current) return "crosshair";
     if (panning.current) return "grabbing";
     if (spareDrawing) return "crosshair";
     if (wireDrag.current?.type === 'vy') return "ns-resize";
@@ -1179,6 +1239,80 @@ export default function AVCanvas() {
 
   // Build wire endpoints from current block positions
   const wireEndpointsRef = useRef([]);
+  // ── Equipment swap ────────────────────────────────────────────────────────
+  const doSwap = (oldBlockId, newEq) => {
+    const oldBlock = blocks.find(b => b.id === oldBlockId);
+    if (!oldBlock) return;
+
+    // Location from containing locBox
+    const bcx = oldBlock.x + PAD_W + BODY_W / 2;
+    const bcy = oldBlock.y + HEADER_H / 2;
+    const containing = locBoxes.filter(lb =>
+      bcx >= lb.x && bcx <= lb.x + lb.w && bcy >= lb.y && bcy <= lb.y + lb.h
+    );
+    const newLocation = containing.length > 0
+      ? containing.reduce((a, c) => c.w * c.h < a.w * a.h ? c : a).label
+      : oldBlock.location;
+
+    const newBlockId = `b-${_blockId++}`;
+    const blockTotalW = PAD_W + BODY_W + PAD_W;
+    const blockCx = oldBlock.x + blockTotalW / 2;
+
+    const connected = wires.filter(w =>
+      w.fromBlockId === oldBlockId || w.toBlockId === oldBlockId
+    );
+
+    const newOrphans = connected.map(w => {
+      const orphanEnd    = w.fromBlockId === oldBlockId ? 'from' : 'to';
+      const orphanPinId  = orphanEnd === 'from' ? w.fromPinId  : w.toPinId;
+      const aliveBlockId = orphanEnd === 'from' ? w.toBlockId  : w.fromBlockId;
+      const alivePinId   = orphanEnd === 'from' ? w.toPinId    : w.fromPinId;
+
+      const oldPins = getPinPositions(oldBlock);
+      const pp = oldPins[orphanPinId];
+      const goRight = !pp || pp.x >= blockCx;
+      const floatCanvasX = pp
+        ? pp.x + (goRight ? 50 : -50)
+        : oldBlock.x + (goRight ? blockTotalW + 50 : -50);
+      const floatCanvasY = pp ? pp.y : oldBlock.y + HEADER_H;
+
+      const expanded = expandGroups(oldBlock.eq?.groups || []);
+      const pinData  = expanded.find(p => p.id === orphanPinId);
+      const signal   = pinData?.signal || 'Other';
+
+      const aliveBlock = blocks.find(b => b.id === aliveBlockId);
+      return {
+        id: `orphan-${w.id}`,
+        signal,
+        feather: !!w.feather,
+        orphanEnd,
+        aliveBlockId,
+        alivePinId,
+        floatCanvasX,
+        floatCanvasY,
+        originalBlockLabel: oldBlock.systemName || oldBlock.eq?.model || '?',
+        originalPinLabel:   pinData?.description || orphanPinId,
+        aliveBlockLabel:    aliveBlock ? (aliveBlock.systemName || aliveBlock.eq?.model || '?') : '?',
+        cableNum: w.cableNum,
+        vx: w.vx,
+        turns: w.turns || [],
+      };
+    });
+
+    setBlocks(bs => [
+      ...bs.filter(b => b.id !== oldBlockId),
+      { id: newBlockId, eq: newEq, x: oldBlock.x, y: oldBlock.y,
+        systemName: oldBlock.systemName, location: newLocation,
+        ipInfo: oldBlock.ipInfo || {} },
+    ]);
+    setWires(ws => ws.filter(w => !connected.some(c => c.id === w.id)));
+    setOrphanWires(os => [...os, ...newOrphans]);
+    setSwapModal(null);
+    setSwapSearch('');
+    setSwapCat('All');
+    setSwapMfr('All');
+  };
+
   const wireEndpoints = wires.map(w => {
     const fb = blocks.find(b => b.id === w.fromBlockId);
     const tb = blocks.find(b => b.id === w.toBlockId);
@@ -1193,6 +1327,7 @@ export default function AVCanvas() {
 
   return (
     <div style={{ display:"flex", height:"100vh", background:"#0f1117", fontFamily:"system-ui,sans-serif", overflow:"hidden" }}>
+      <style>{`@keyframes orphan-pulse { 0%,100%{opacity:0.5;r:13} 50%{opacity:0.15;r:18} }`}</style>
 
       {/* ── Sidebar ── */}
       <Sidebar blocks={blocks} onDragStart={onLibDragStart} />
@@ -2493,6 +2628,15 @@ export default function AVCanvas() {
                 {b.systemName || b.eq?.model}
               </div>
               <div onClick={() => {
+                  setSwapModal({ blockId: b.id });
+                  setContextMenu(null);
+                }}
+                style={{padding:"7px 14px",fontSize:12,color:"#c8d0e8",cursor:"pointer"}}
+                onMouseEnter={e=>e.currentTarget.style.background="#2d3555"}
+                onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                Swap equipment…
+              </div>
+              <div onClick={() => {
                   setIpInfoModal({ blockId: b.id, x: contextMenu.x, y: contextMenu.y });
                   setContextMenu(null);
                 }}
@@ -2664,6 +2808,249 @@ export default function AVCanvas() {
             })()}
           </div>
         )}
+
+        {/* ── Orphan wire overlay ── */}
+        {orphanWires.length > 0 && (() => {
+          const rect = canvasRef.current?.getBoundingClientRect();
+          if (!rect) return null;
+          return (<>
+            {/* SVG for the dashed lines — pointer-events:none so canvas still works */}
+            <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%',
+              pointerEvents:'none', zIndex:60, overflow:'visible' }}>
+              {orphanWires.map(ow => {
+                const aliveBlock = blocks.find(b => b.id === ow.aliveBlockId);
+                if (!aliveBlock) return null;
+                const alivePin = getPinPositions(aliveBlock)[ow.alivePinId];
+                if (!alivePin) return null;
+                const ax = alivePin.x * zoom + pan.x;
+                const ay = alivePin.y * zoom + pan.y;
+                const fx = ow.floatCanvasX * zoom + pan.x;
+                const fy = ow.floatCanvasY * zoom + pan.y;
+                const color = SIGNAL_COLORS[ow.signal] || '#888';
+                const active = draggingOrphan?.orphanId === ow.id;
+                return (
+                  <g key={ow.id}>
+                    <line x1={ax} y1={ay} x2={fx} y2={fy}
+                      stroke={color} strokeWidth={1.5}
+                      strokeDasharray={ow.feather ? '3 3' : '5 4'}
+                      opacity={0.65} />
+                    {ow.feather ? (
+                      <rect x={fx-7} y={fy-7} width={14} height={14} rx={2}
+                        fill={color} transform={`rotate(45 ${fx} ${fy})`}
+                        opacity={active ? 1 : 0.85}
+                        stroke={active ? '#fff' : 'none'} strokeWidth={1.5} />
+                    ) : (
+                      <circle cx={fx} cy={fy} r={7}
+                        fill={color}
+                        opacity={active ? 1 : 0.85}
+                        stroke={active ? '#fff' : 'none'} strokeWidth={1.5} />
+                    )}
+                    {active && (
+                      <circle cx={fx} cy={fy} r={13}
+                        fill="none" stroke={color} strokeWidth={1} opacity={0.5}
+                        style={{ animation:'orphan-pulse 1s ease-in-out infinite' }} />
+                    )}
+                  </g>
+                );
+              })}
+            </svg>
+
+            {/* Invisible hit divs — drag to reconnect, right-click to delete */}
+            {orphanWires.map(ow => {
+              if (draggingOrphan?.orphanId === ow.id) return null; // hide the one being dragged
+              const aliveBlock = blocks.find(b => b.id === ow.aliveBlockId);
+              if (!aliveBlock) return null;
+              if (!getPinPositions(aliveBlock)[ow.alivePinId]) return null;
+              const fx = ow.floatCanvasX * zoom + pan.x;
+              const fy = ow.floatCanvasY * zoom + pan.y;
+              const tooltip = `${ow.originalPinLabel} — was on ${ow.originalBlockLabel}\nDrag to a pin to reconnect · Right-click to delete`;
+              return (
+                <div key={`hit-${ow.id}`} title={tooltip}
+                  style={{
+                    position: 'absolute',
+                    left: fx - 12, top: fy - 12,
+                    width: 24, height: 24,
+                    borderRadius: '50%',
+                    cursor: 'grab',
+                    zIndex: 61,
+                    background: 'transparent',
+                  }}
+                  onMouseDown={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const r = canvasRef.current.getBoundingClientRect();
+                    const cx = (e.clientX - r.left - pan.x) / zoom;
+                    const cy = (e.clientY - r.top  - pan.y) / zoom;
+                    const drag = { orphanId: ow.id, mouseCanvasX: cx, mouseCanvasY: cy };
+                    draggingOrphanRef.current = drag;
+                    setDraggingOrphan(drag);
+                  }}
+                  onContextMenu={e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const r = canvasRef.current.getBoundingClientRect();
+                    setContextMenu({ x: e.clientX - r.left, y: e.clientY - r.top, orphanId: ow.id });
+                  }}
+                />
+              );
+            })}
+          </>);
+        })()}
+
+        {/* ── Orphan drag preview line ── */}
+        {draggingOrphan && (() => {
+          const ow = orphanWires.find(o => o.id === draggingOrphan.orphanId);
+          if (!ow) return null;
+          const aliveBlock = blocks.find(b => b.id === ow.aliveBlockId);
+          if (!aliveBlock) return null;
+          const alivePin = getPinPositions(aliveBlock)[ow.alivePinId];
+          if (!alivePin) return null;
+          const ax = alivePin.x * zoom + pan.x;
+          const ay = alivePin.y * zoom + pan.y;
+          const mx = draggingOrphan.mouseCanvasX * zoom + pan.x;
+          const my = draggingOrphan.mouseCanvasY * zoom + pan.y;
+          const color = SIGNAL_COLORS[ow.signal] || '#888';
+          return (
+            <svg style={{ position:'absolute', inset:0, width:'100%', height:'100%',
+              pointerEvents:'none', zIndex:62, overflow:'visible' }}>
+              <line x1={ax} y1={ay} x2={mx} y2={my}
+                stroke={color} strokeWidth={2} strokeDasharray="5 4" opacity={0.9} />
+              <circle cx={mx} cy={my} r={8} fill={color} opacity={0.9} />
+              <circle cx={mx} cy={my} r={14} fill="none"
+                stroke={color} strokeWidth={1} opacity={0.5}
+                style={{ animation:'orphan-pulse 0.8s ease-in-out infinite' }} />
+            </svg>
+          );
+        })()}
+
+        {/* ── Orphan context menu ── */}        {/* ── Orphan context menu ── */}
+        {contextMenu?.orphanId && (() => {
+          const ow = orphanWires.find(o => o.id === contextMenu.orphanId);
+          if (!ow) return null;
+          return (
+            <div style={{ position:'absolute', left:contextMenu.x, top:contextMenu.y, zIndex:200,
+              background:'#1e2433', border:'0.5px solid #3d4663', borderRadius:7,
+              padding:'4px 0', minWidth:180, boxShadow:'0 4px 16px rgba(0,0,0,0.4)' }}
+              onMouseLeave={() => setContextMenu(null)}>
+              <div style={{ padding:'4px 12px 2px', fontSize:9, color:'#555e7a', textTransform:'uppercase', letterSpacing:'0.05em' }}>
+                {ow.feather ? 'Jump tag' : 'Wire'} — orphan
+              </div>
+              <div style={{ padding:'4px 12px 8px', fontSize:11, color:'#7a8ab0', borderBottom:'0.5px solid #2d3555' }}>
+                {ow.originalPinLabel} on {ow.originalBlockLabel}
+              </div>
+
+              <div onClick={() => { setOrphanWires(os => os.filter(o => o.id !== ow.id)); setContextMenu(null); }}
+                style={{ padding:'7px 14px', fontSize:12, color:'#f87171', cursor:'pointer' }}
+                onMouseEnter={e=>e.currentTarget.style.background='#2d1515'}
+                onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                Delete wire
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ── Swap picker modal ── */}
+        {swapModal && (() => {
+          const oldBlock = blocks.find(b => b.id === swapModal.blockId);
+          if (!oldBlock) return null;
+          const allMfrs = ['All', ...Array.from(new Set(SAMPLE_LIBRARY.map(e => e.manufacturer).filter(Boolean))).sort()];
+          const allCats = ['All', ...Array.from(new Set(SAMPLE_LIBRARY.map(e => e.category).filter(Boolean))).sort()];
+          const q = swapSearch.toLowerCase();
+          const filtered = SAMPLE_LIBRARY.filter(eq => {
+            const matchQ = !q || eq.manufacturer?.toLowerCase().includes(q) || eq.model?.toLowerCase().includes(q);
+            const matchC = swapCat === 'All' || eq.category === swapCat;
+            const matchM = swapMfr === 'All' || eq.manufacturer === swapMfr;
+            return matchQ && matchC && matchM;
+          });
+          const menuStyle = (hover) => ({
+            padding:'7px 14px', fontSize:12, color:'#c8d0e8', cursor:'pointer',
+            background: hover ? '#2d3555' : 'transparent',
+          });
+          return (
+            <div style={{ position:'absolute', inset:0, zIndex:300,
+              background:'rgba(0,0,0,0.55)', display:'flex', alignItems:'center', justifyContent:'center' }}
+              onClick={e => { if (e.target === e.currentTarget) setSwapModal(null); }}>
+              <div style={{ background:'#1e2433', border:'0.5px solid #3d4663', borderRadius:12,
+                width:520, maxHeight:'75vh', display:'flex', flexDirection:'column',
+                boxShadow:'0 8px 32px rgba(0,0,0,0.6)' }}>
+
+                {/* Header */}
+                <div style={{ padding:'14px 18px 10px', borderBottom:'0.5px solid #2d3555', flexShrink:0 }}>
+                  <div style={{ fontSize:13, fontWeight:500, color:'#c8d0e8', marginBottom:10 }}>
+                    Swap equipment — replacing&nbsp;
+                    <span style={{ color:'#a8d4ff' }}>{oldBlock.systemName || oldBlock.eq?.model}</span>
+                  </div>
+                  {/* Search + filters */}
+                  <div style={{ display:'flex', gap:8 }}>
+                    <input
+                      autoFocus
+                      value={swapSearch}
+                      onChange={e => setSwapSearch(e.target.value)}
+                      placeholder="Search model, manufacturer…"
+                      style={{ flex:1, background:'#13161f', border:'0.5px solid #3d4663', borderRadius:6,
+                        color:'#c8d0e8', fontSize:12, padding:'6px 10px', outline:'none' }}
+                      onKeyDown={e => e.key === 'Escape' && setSwapModal(null)}
+                    />
+                    <select value={swapCat} onChange={e => setSwapCat(e.target.value)}
+                      style={{ background:'#13161f', border:'0.5px solid #3d4663', borderRadius:6,
+                        color:'#c8d0e8', fontSize:12, padding:'6px 8px', cursor:'pointer' }}>
+                      {allCats.map(c => <option key={c} value={c}>{c === 'All' ? 'All categories' : c}</option>)}
+                    </select>
+                    <select value={swapMfr} onChange={e => setSwapMfr(e.target.value)}
+                      style={{ background:'#13161f', border:'0.5px solid #3d4663', borderRadius:6,
+                        color:'#c8d0e8', fontSize:12, padding:'6px 8px', cursor:'pointer' }}>
+                      {allMfrs.map(m => <option key={m} value={m}>{m === 'All' ? 'All manufacturers' : m}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Library list */}
+                <div style={{ flex:1, overflowY:'auto', padding:'6px 0' }}>
+                  {filtered.length === 0 && (
+                    <div style={{ padding:'20px', textAlign:'center', fontSize:12, color:'#555e7a' }}>
+                      No blocks found
+                    </div>
+                  )}
+                  {filtered.map(eq => (
+                    <div key={eq.id}
+                      onClick={() => doSwap(swapModal.blockId, eq)}
+                      style={{ padding:'8px 18px', cursor:'pointer', display:'flex', alignItems:'center', gap:10,
+                        borderBottom:'0.5px solid #1a1f2e' }}
+                      onMouseEnter={e=>e.currentTarget.style.background='#2d3555'}
+                      onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:12, color:'#c8d0e8', fontWeight:500 }}>{eq.model}</div>
+                        <div style={{ fontSize:11, color:'#7a8ab0', marginTop:1 }}>{eq.manufacturer} · {eq.category}</div>
+                      </div>
+                      <div style={{ fontSize:10, color:'#555e7a' }}>
+                        {eq.groups?.reduce((s,g)=>s+g.qty,0) || 0} pins
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Create new block footer */}
+                <div style={{ borderTop:'0.5px solid #2d3555', flexShrink:0 }}>
+                  <div
+                    onClick={() => window.open('http://localhost:5174', '_blank')}
+                    style={{ padding:'10px 18px', cursor:'pointer', fontSize:12, color:'#388bfd',
+                      display:'flex', alignItems:'center', gap:8 }}
+                    onMouseEnter={e=>e.currentTarget.style.background='rgba(56,139,253,0.08)'}
+                    onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                    + Create new block in Block Library…
+                  </div>
+                  <div onClick={() => setSwapModal(null)}
+                    style={{ padding:'8px 18px 12px', cursor:'pointer', fontSize:12, color:'#555e7a',
+                      textAlign:'center' }}
+                    onMouseEnter={e=>e.currentTarget.style.background='#1a1f2e'}
+                    onMouseLeave={e=>e.currentTarget.style.background='transparent'}>
+                    Cancel
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Marquee selection box */}
         {marquee && (() => {
