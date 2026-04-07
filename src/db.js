@@ -6,7 +6,6 @@ const IDB_NAME  = 'avflow-db';
 const IDB_STORE = 'handles';
 const IDB_KEY   = 'dirHandle';
 
-// ── IndexedDB: persist the directory handle across sessions ───────────────────
 function openIDB() {
   return new Promise((res, rej) => {
     const req = indexedDB.open(IDB_NAME, 1);
@@ -40,7 +39,6 @@ export async function clearHandle() {
   return new Promise((res, rej) => { tx.oncomplete = res; tx.onerror = rej; });
 }
 
-// ── File System Access API: pick, read, write ─────────────────────────────────
 export const fsaSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
 
 export async function pickDirectory() {
@@ -50,7 +48,6 @@ export async function pickDirectory() {
   return handle;
 }
 
-// Verify we still have permission (user may have revoked it)
 export async function verifyPermission(handle) {
   if (!handle) return false;
   const opts = { mode: 'readwrite' };
@@ -59,15 +56,25 @@ export async function verifyPermission(handle) {
   return false;
 }
 
-// Read all *.json files from a directory handle → flat array of blocks
+function safeFilename(manufacturer) {
+  if (!manufacturer || !manufacturer.trim()) return null;
+  const safe = manufacturer.trim().replace(/[^a-zA-Z0-9_\-. ]/g, '_');
+  return safe || null;
+}
+
+// Read all manufacturer *.json files — skips index.json and dotfiles
 export async function readAllBlocks(dirHandle) {
   const blocks = [];
   for await (const [name, entry] of dirHandle.entries()) {
-    if (entry.kind !== 'file' || !name.endsWith('.json')) continue;
+    if (entry.kind !== 'file') continue;
+    if (!name.endsWith('.json')) continue;
+    if (name === 'index.json') continue;
+    if (name.startsWith('.')) continue;
     try {
       const file = await entry.getFile();
       const data = JSON.parse(await file.text());
-      if (Array.isArray(data)) blocks.push(...data);
+      if (!Array.isArray(data)) continue;
+      blocks.push(...data.filter(b => b && b.id && b.manufacturer));
     } catch (e) {
       console.warn(`db.js: failed to parse ${name}`, e);
     }
@@ -75,18 +82,35 @@ export async function readAllBlocks(dirHandle) {
   return blocks;
 }
 
-// Write all blocks for one manufacturer to {Manufacturer}.json
+async function updateIndexJson(dirHandle, allBlocks) {
+  const manufacturers = [...new Set(allBlocks.map(b => b.manufacturer).filter(Boolean))].sort();
+  const filenames = manufacturers.map(m => safeFilename(m)).filter(Boolean).map(s => `${s}.json`);
+  try {
+    const fh = await dirHandle.getFileHandle('index.json', { create: true });
+    const w  = await fh.createWritable();
+    await w.write(JSON.stringify(filenames, null, 2));
+    await w.close();
+  } catch (e) {
+    console.warn('db.js: failed to update index.json', e);
+  }
+}
+
 export async function writeManufacturerFile(dirHandle, manufacturer, allBlocks) {
+  const safe = safeFilename(manufacturer);
+  if (!safe) { console.warn('db.js: skipping — empty manufacturer'); return; }
   const mfrBlocks = allBlocks.filter(b => b.manufacturer === manufacturer);
-  const safe = manufacturer.replace(/[^a-zA-Z0-9_\-. ]/g, '_');
   const fileHandle = await dirHandle.getFileHandle(`${safe}.json`, { create: true });
   const writable   = await fileHandle.createWritable();
   await writable.write(JSON.stringify(mfrBlocks, null, 2));
   await writable.close();
+  await updateIndexJson(dirHandle, allBlocks);
 }
 
-// Save a single block: add-or-update its manufacturer file
 export async function saveBlock(dirHandle, block, allBlocks) {
+  if (!block.manufacturer || !block.manufacturer.trim()) {
+    console.warn('db.js: cannot save block with empty manufacturer');
+    return allBlocks;
+  }
   const updated = allBlocks.find(b => b.id === block.id)
     ? allBlocks.map(b => b.id === block.id ? block : b)
     : [...allBlocks, block];
@@ -94,40 +118,30 @@ export async function saveBlock(dirHandle, block, allBlocks) {
   return updated;
 }
 
-// Delete a block: update its manufacturer file
 export async function deleteBlock(dirHandle, blockId, manufacturer, allBlocks) {
   const updated = allBlocks.filter(b => b.id !== blockId);
-  await writeManufacturerFile(dirHandle, manufacturer, updated);
+  if (manufacturer && manufacturer.trim()) {
+    await writeManufacturerFile(dirHandle, manufacturer, updated);
+  }
   return updated;
 }
 
-// ── URL fetch fallback (read-only, for deployed / Firefox) ────────────────────
-// Fetches /database/index.json (list of filenames) then each file.
-// Falls back to fetching known filenames if index.json is absent.
 export async function fetchFromUrl(baseUrl = 'https://raw.githubusercontent.com/FFSerenity/avflow/main/database/') {
   const url = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
   let filenames = [];
-
-  // Try fetching index.json manifest
   try {
     const res = await fetch(url + 'index.json');
     if (res.ok) filenames = await res.json();
   } catch (_) {}
 
-  // If no index, try fetching directory listing via URL (won't work on Netlify)
-  if (filenames.length === 0) {
-    // Fallback: try a predictable list stored in localStorage
-    const stored = localStorage.getItem('avflow_db_files');
-    if (stored) filenames = JSON.parse(stored);
-  }
-
   const blocks = [];
   for (const name of filenames) {
+    if (!name || name === 'index.json' || name.startsWith('.')) continue;
     try {
       const res = await fetch(url + name);
       if (!res.ok) continue;
       const data = await res.json();
-      if (Array.isArray(data)) blocks.push(...data);
+      if (Array.isArray(data)) blocks.push(...data.filter(b => b && b.id && b.manufacturer));
     } catch (e) {
       console.warn(`db.js: failed to fetch ${name}`, e);
     }

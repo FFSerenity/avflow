@@ -1,7 +1,5 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { SAMPLE_LIBRARY } from "../src/components/Sidebar.jsx";
-import { fsaSupported, loadHandle, saveHandle, verifyPermission, pickDirectory,
-         readAllBlocks, saveBlock, deleteBlock, fetchFromUrl } from "../src/db.js";
 
 // ── CSS variables ─────────────────────────────────────────────────────────────
 const _style = document.createElement("style");
@@ -602,93 +600,13 @@ function EquipmentCard({ eq, onEdit, onDelete }) {
 // ── Root ──────────────────────────────────────────────────────────────────────
 
 export default function LibraryApp() {
-  const [library,       setLibrary]       = useState(INITIAL_LIBRARY);
-  const [view,          setView]          = useState("library");
-  const [editing,       setEditing]       = useState(null);
-  const [search,        setSearch]        = useState("");
-  const [filterCat,     setFilterCat]     = useState("All");
-  const [filterMfr,     setFilterMfr]     = useState("All");
-  const [confirmDelete, setConfirmDelete] = useState(null);
-  const [dirHandle,     setDirHandle]     = useState(null);
-  const [dbStatus,      setDbStatus]      = useState("disconnected"); // "disconnected"|"connected"|"syncing"|"saving"|"error"
-
-  // On mount: restore persisted directory handle
-  useEffect(() => {
-    (async () => {
-      try { const f=await fetchFromUrl(); if(f.length>0){setLibrary(f);setDbStatus("connected");} } catch(_){}
-      if (!fsaSupported) return;
-      const h = await loadHandle().catch(() => null);
-      if (!h) return;
-      const ok = await verifyPermission(h).catch(() => false);
-      if (!ok) return;
-      setDirHandle(h);
-      setDbStatus("syncing");
-      try {
-        const data = await readAllBlocks(h);
-        if (data.length > 0) setLibrary(data);
-        setDbStatus("connected");
-      } catch (e) { console.error(e); setDbStatus("error"); }
-    })();
-  }, []);
-
-  const handlePickFolder = async () => {
-    try {
-      const h = await pickDirectory();
-      setDirHandle(h);
-      setDbStatus("syncing");
-      const data = await readAllBlocks(h);
-      if (data.length > 0) setLibrary(data);
-      setDbStatus("connected");
-    } catch (e) {
-      if (e.name !== "AbortError") { console.error(e); setDbStatus("error"); }
-    }
-  };
-
-  const handleSyncFromDatabase = async () => {
-    if (!dirHandle) return;
-    setDbStatus("syncing");
-    try {
-      const ok = await verifyPermission(dirHandle);
-      if (!ok) { setDbStatus("error"); return; }
-      const data = await readAllBlocks(dirHandle);
-      if (data.length > 0) setLibrary(data);
-      setDbStatus("connected");
-    } catch (e) { console.error(e); setDbStatus("error"); }
-  };
-
-  const handleSave = async (eq) => {
-    const updated = library.find(e => e.id === eq.id)
-      ? library.map(e => e.id === eq.id ? eq : e)
-      : [...library, eq];
-    setLibrary(updated);
-    setView("library"); setEditing(null);
-    if (dirHandle) {
-      setDbStatus("saving");
-      try {
-        const ok = await verifyPermission(dirHandle);
-        if (!ok) { setDbStatus("error"); return; }
-        await saveBlock(dirHandle, eq, updated);
-        setDbStatus("connected");
-      } catch (e) { console.error(e); setDbStatus("error"); }
-    }
-  };
-
-  const handleDelete = async (id) => {
-    const eq = library.find(e => e.id === id);
-    if (!eq) return;
-    const updated = library.filter(e => e.id !== id);
-    setLibrary(updated);
-    setConfirmDelete(null);
-    if (dirHandle) {
-      setDbStatus("saving");
-      try {
-        const ok = await verifyPermission(dirHandle);
-        if (!ok) { setDbStatus("error"); return; }
-        await deleteBlock(dirHandle, id, eq.manufacturer, library);
-        setDbStatus("connected");
-      } catch (e) { console.error(e); setDbStatus("error"); }
-    }
-  };
+  const [library,   setLibrary]   = useState(INITIAL_LIBRARY);
+  const [view,      setView]      = useState("library");
+  const [editing,   setEditing]   = useState(null);
+  const [search,    setSearch]    = useState("");
+  const [filterCat, setFilterCat] = useState("All");
+  const [filterMfr, setFilterMfr] = useState("All");
+  const [confirmDelete, setConfirmDelete] = useState(null); // eq object to confirm deletion
 
   const manufacturers = ["All", ...Array.from(new Set(library.map(e => e.manufacturer).filter(Boolean))).sort()];
   const filtered = library.filter(eq => {
@@ -697,6 +615,11 @@ export default function LibraryApp() {
       && (filterCat === "All" || eq.category === filterCat)
       && (filterMfr === "All" || eq.manufacturer === filterMfr);
   });
+
+  const handleSave = (eq) => {
+    setLibrary(prev => prev.find(e => e.id === eq.id) ? prev.map(e => e.id === eq.id ? eq : e) : [...prev, eq]);
+    setView("library"); setEditing(null);
+  };
 
   return (
     <div style={{ fontFamily: "var(--font-sans)", padding: "1rem 0", color: "var(--color-text-primary)" }}>
@@ -719,25 +642,7 @@ export default function LibraryApp() {
             </span>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {fsaSupported && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <div style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: { disconnected:"#555e7a", connected:"#1D9E75", syncing:"#EF9F27", saving:"#EF9F27", error:"#E24B4A" }[dbStatus] }} />
-                <span style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>{{ disconnected:"no database", connected:"connected", syncing:"syncing…", saving:"saving…", error:"error" }[dbStatus]}</span>
-              </div>
-              {dirHandle && (
-                <button onClick={handleSyncFromDatabase} disabled={dbStatus==="syncing"||dbStatus==="saving"}
-                  style={{ fontSize: 12, padding: "5px 12px", cursor: "pointer", borderRadius: 6, background: "var(--color-background-secondary)", border: "0.5px solid var(--color-border-secondary)", color: "var(--color-text-secondary)", opacity: (dbStatus==="syncing"||dbStatus==="saving") ? 0.5 : 1 }}>
-                  ↻ Sync from database
-                </button>
-              )}
-              <button onClick={handlePickFolder}
-                style={{ fontSize: 12, padding: "5px 12px", cursor: "pointer", borderRadius: 6, background: "var(--color-background-secondary)", border: "0.5px solid var(--color-border-secondary)", color: "var(--color-text-secondary)" }}>
-                ⌂ {dirHandle ? "Change folder" : "Connect database folder"}
-              </button>
-            </div>
-          )}
+        <div style={{ display: "flex", gap: 8 }}>
           {view === "editor" && <button onClick={() => { setEditing(null); setView("library"); }} style={{ fontSize: 13, padding: "7px 16px", cursor: "pointer" }}>← Back</button>}
           {view === "library" && <button onClick={() => { setEditing(defaultNewEquipment()); setView("editor"); }} style={{ fontSize: 13, padding: "7px 16px", cursor: "pointer", background: "var(--color-background-info)", color: "var(--color-text-info)", border: "0.5px solid var(--color-border-info)", borderRadius: 6, fontWeight: 500 }}>+ New block</button>}
         </div>
@@ -802,7 +707,10 @@ export default function LibraryApp() {
                 Cancel
               </button>
               <button
-                onClick={() => handleDelete(confirmDelete.id)}
+                onClick={() => {
+                  setLibrary(prev => prev.filter(e => e.id !== confirmDelete.id));
+                  setConfirmDelete(null);
+                }}
                 style={{
                   padding: "7px 18px", fontSize: 13, cursor: "pointer", borderRadius: 6, fontWeight: 500,
                   background: "var(--color-background-danger)",
