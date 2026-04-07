@@ -151,7 +151,7 @@ export default function Sidebar({ blocks, onDragStart }) {
   };
 
   const handleSync = async () => {
-    if (!dirHandle) return;
+    if (!dirHandle) { setDbStatus("syncing"); try { const d=await fetchFromUrl(); if(d.length>0){setLibrary(d);} setDbStatus("connected"); } catch(e){setDbStatus("error");} return; }
     setDbStatus("syncing");
     try {
       const ok = await verifyPermission(dirHandle);
