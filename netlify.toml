@@ -1,0 +1,13 @@
+[build]
+  command = "npm run build:all"
+  publish = "dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[[redirects]]
+  from = "/library/*"
+  to = "/library/index.html"
+  status = 200
