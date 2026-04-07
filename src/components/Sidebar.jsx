@@ -115,7 +115,7 @@ export default function Sidebar({ blocks, onDragStart }) {
     (async () => {
       // Always try URL fetch as baseline (works on Netlify even without FSA folder)
       try {
-        const fetched = await fetchFromUrl("/database/");
+        const fetched = await fetchFromUrl();
         if (fetched.length > 0) { setLibrary(fetched); setDbStatus("connected"); }
       } catch (_) {}
 
@@ -204,7 +204,6 @@ export default function Sidebar({ blocks, onDragStart }) {
             <div style={{ width:6, height:6, borderRadius:"50%", background:statusColor, flexShrink:0 }} />
             <span style={{ fontSize:10, color:statusColor }}>{statusLabel}</span>
           </div>
-          {dirHandle && (
             <button onClick={handleSync} disabled={dbStatus === "syncing"}
               title="Reload all blocks from the database folder"
               style={{ fontSize:10, padding:"2px 7px", cursor:"pointer", borderRadius:4,
@@ -212,7 +211,6 @@ export default function Sidebar({ blocks, onDragStart }) {
                 opacity: dbStatus === "syncing" ? 0.5 : 1 }}>
               ↻ Sync
             </button>
-          )}
         </div>
         {fsaSupported ? (
           <button onClick={handlePickFolder}

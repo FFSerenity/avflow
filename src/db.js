@@ -104,7 +104,7 @@ export async function deleteBlock(dirHandle, blockId, manufacturer, allBlocks) {
 // ── URL fetch fallback (read-only, for deployed / Firefox) ────────────────────
 // Fetches /database/index.json (list of filenames) then each file.
 // Falls back to fetching known filenames if index.json is absent.
-export async function fetchFromUrl(baseUrl = '/database/') {
+export async function fetchFromUrl(baseUrl = 'https://raw.githubusercontent.com/FFSerenity/avflow/main/database/') {
   const url = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
   let filenames = [];
 

@@ -615,7 +615,7 @@ export default function LibraryApp() {
   // On mount: restore persisted directory handle
   useEffect(() => {
     (async () => {
-      try { const f=await fetchFromUrl("/database/"); if(f.length>0){setLibrary(f);setDbStatus("connected");} } catch(_){}
+      try { const f=await fetchFromUrl(); if(f.length>0){setLibrary(f);setDbStatus("connected");} } catch(_){}
       if (!fsaSupported) return;
       const h = await loadHandle().catch(() => null);
       if (!h) return;
