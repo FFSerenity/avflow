@@ -5,10 +5,14 @@ import { resolve } from 'path'
 export default defineConfig({
   plugins: [react()],
   server: { port: 5174 },
-  root: resolve(__dirname),               // root = library-dev/
+  root: resolve(__dirname),
+  base: '/library/',
+  build: {
+    outDir: resolve(__dirname, '../dist/library'),
+    emptyOutDir: true,
+  },
   resolve: {
     alias: {
-      // make ../src imports resolve cleanly
       '@src': resolve(__dirname, '../src'),
     }
   }
