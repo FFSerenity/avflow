@@ -27,15 +27,15 @@ const SAMPLE_LIBRARY = [
       {id:"g1",  signal:"HDMI",        qty:2, connector:"HDMI Type A",   direction:"Input",  side:"left",  description:"HDMI IN"},
       {id:"g2",  signal:"DisplayPort", qty:1, connector:"DisplayPort",   direction:"Input",  side:"left",  description:"DP IN"},
       {id:"g3",  signal:"DVI",         qty:1, connector:"DVI-I",         direction:"Input",  side:"left",  description:"DVI IN"},
-      {id:"g4",  signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",     direction:"Input",  side:"left",  description:"STEREO"},
-      {id:"g5",  signal:"RS-232",      qty:1, connector:"TRS 3.5mm",     direction:"Input",  side:"left",  description:"RS-232C"},
-      {id:"g6",  signal:"RJ45 LAN",    qty:1, connector:"RJ45",          direction:"Input",  side:"left",  description:"LAN"},
-      {id:"g7",  signal:"USB-A",       qty:2, connector:"USB Type-A",    direction:"Input",  side:"left",  description:"USB"},
-      {id:"g8",  signal:"IEC Power",   qty:1, connector:"IEC 60320 C13", direction:"Input",  side:"left",  description:"POWER"},
-      {id:"g9",  signal:"HDMI",        qty:1, connector:"HDMI Type A",   direction:"Output", side:"right", description:"HDMI OUT"},
-      {id:"g10", signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",     direction:"Output", side:"right", description:"STEREO"},
-      {id:"g11", signal:"RS-232",      qty:1, connector:"TRS 3.5mm",     direction:"Output", side:"right", description:"RS-232C"},
-      {id:"g12", signal:"IR",          qty:1, connector:"TRS 3.5mm",     direction:"Output", side:"right", description:"IR"},
+      {id:"g4",  signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"STEREO"},
+      {id:"g5",  signal:"RS-232",      qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"RS-232C"},
+      {id:"g6",  signal:"RJ45 LAN",    qty:1, connector:"RJ45",         direction:"Input",  side:"left",  description:"LAN"},
+      {id:"g7",  signal:"USB-A",       qty:2, connector:"USB Type-A",   direction:"Input",  side:"left",  description:"USB"},
+      {id:"g8",  signal:"IEC Power",   qty:1, connector:"IEC 60320 C13",direction:"Input",  side:"left",  description:"POWER"},
+      {id:"g9",  signal:"HDMI",        qty:1, connector:"HDMI Type A",  direction:"Output", side:"right", description:"HDMI OUT"},
+      {id:"g10", signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"STEREO"},
+      {id:"g11", signal:"RS-232",      qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"RS-232C"},
+      {id:"g12", signal:"IR",          qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"IR"},
     ]},
 
   { id:"eq-003", manufacturer:"Samsung", model:"QM75R", category:"Display",
@@ -46,14 +46,14 @@ const SAMPLE_LIBRARY = [
       {id:"g1",  signal:"HDMI",        qty:2, connector:"HDMI Type A",   direction:"Input",  side:"left",  description:"HDMI IN"},
       {id:"g2",  signal:"DisplayPort", qty:1, connector:"DisplayPort",   direction:"Input",  side:"left",  description:"DP IN"},
       {id:"g3",  signal:"DVI",         qty:1, connector:"DVI-I",         direction:"Input",  side:"left",  description:"DVI IN"},
-      {id:"g4",  signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",     direction:"Input",  side:"left",  description:"STEREO"},
-      {id:"g5",  signal:"RS-232",      qty:1, connector:"TRS 3.5mm",     direction:"Input",  side:"left",  description:"RS-232C"},
-      {id:"g6",  signal:"RJ45 LAN",    qty:1, connector:"RJ45",          direction:"Input",  side:"left",  description:"LAN"},
-      {id:"g7",  signal:"USB-A",       qty:2, connector:"USB Type-A",    direction:"Input",  side:"left",  description:"USB"},
-      {id:"g8",  signal:"IEC Power",   qty:1, connector:"IEC 60320 C13", direction:"Input",  side:"left",  description:"POWER"},
-      {id:"g9",  signal:"HDMI",        qty:1, connector:"HDMI Type A",   direction:"Output", side:"right", description:"HDMI OUT"},
-      {id:"g10", signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",     direction:"Output", side:"right", description:"STEREO"},
-      {id:"g11", signal:"RS-232",      qty:1, connector:"TRS 3.5mm",     direction:"Output", side:"right", description:"RS-232C"},
+      {id:"g4",  signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"STEREO"},
+      {id:"g5",  signal:"RS-232",      qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"RS-232C"},
+      {id:"g6",  signal:"RJ45 LAN",    qty:1, connector:"RJ45",         direction:"Input",  side:"left",  description:"LAN"},
+      {id:"g7",  signal:"USB-A",       qty:2, connector:"USB Type-A",   direction:"Input",  side:"left",  description:"USB"},
+      {id:"g8",  signal:"IEC Power",   qty:1, connector:"IEC 60320 C13",direction:"Input",  side:"left",  description:"POWER"},
+      {id:"g9",  signal:"HDMI",        qty:1, connector:"HDMI Type A",  direction:"Output", side:"right", description:"HDMI OUT"},
+      {id:"g10", signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"STEREO"},
+      {id:"g11", signal:"RS-232",      qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"RS-232C"},
     ]},
 
   { id:"eq-004", manufacturer:"Samsung", model:"QM43B-T", category:"Display",
@@ -63,16 +63,16 @@ const SAMPLE_LIBRARY = [
     groups:[
       {id:"g1",  signal:"HDMI",        qty:3, connector:"HDMI Type A",   direction:"Input",  side:"left",  description:"HDMI"},
       {id:"g2",  signal:"DisplayPort", qty:1, connector:"DisplayPort",   direction:"Input",  side:"left",  description:"DP"},
-      {id:"g3",  signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",     direction:"Input",  side:"left",  description:"STEREO"},
-      {id:"g4",  signal:"RS-232",      qty:1, connector:"TRS 3.5mm",     direction:"Input",  side:"left",  description:"RS-232C"},
-      {id:"g5",  signal:"RJ45 LAN",    qty:1, connector:"RJ45",          direction:"Input",  side:"left",  description:"LAN"},
-      {id:"g6",  signal:"USB-A",       qty:2, connector:"USB Type-A",    direction:"Input",  side:"left",  description:"USB"},
-      {id:"g7",  signal:"USB-B",       qty:1, connector:"USB Type-B",    direction:"Input",  side:"left",  description:"TOUCH OUT"},
-      {id:"g8",  signal:"USB-B",       qty:1, connector:"USB Type-B",    direction:"Input",  side:"left",  description:"TOUCH PC"},
-      {id:"g9",  signal:"IEC Power",   qty:1, connector:"IEC 60320 C13", direction:"Input",  side:"left",  description:"POWER"},
-      {id:"g10", signal:"HDMI",        qty:1, connector:"HDMI Type A",   direction:"Output", side:"right", description:"HDMI"},
-      {id:"g11", signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",     direction:"Output", side:"right", description:"STEREO"},
-      {id:"g12", signal:"RS-232",      qty:1, connector:"TRS 3.5mm",     direction:"Output", side:"right", description:"RS-232C"},
+      {id:"g3",  signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"STEREO"},
+      {id:"g4",  signal:"RS-232",      qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"RS-232C"},
+      {id:"g5",  signal:"RJ45 LAN",    qty:1, connector:"RJ45",         direction:"Input",  side:"left",  description:"LAN"},
+      {id:"g6",  signal:"USB-A",       qty:2, connector:"USB Type-A",   direction:"Input",  side:"left",  description:"USB"},
+      {id:"g7",  signal:"USB-B",       qty:1, connector:"USB Type-B",   direction:"Input",  side:"left",  description:"TOUCH OUT"},
+      {id:"g8",  signal:"USB-B",       qty:1, connector:"USB Type-B",   direction:"Input",  side:"left",  description:"TOUCH PC"},
+      {id:"g9",  signal:"IEC Power",   qty:1, connector:"IEC 60320 C13",direction:"Input",  side:"left",  description:"POWER"},
+      {id:"g10", signal:"HDMI",        qty:1, connector:"HDMI Type A",  direction:"Output", side:"right", description:"HDMI"},
+      {id:"g11", signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"STEREO"},
+      {id:"g12", signal:"RS-232",      qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"RS-232C"},
     ]},
 
   { id:"eq-005", manufacturer:"Samsung", model:"QB65C", category:"Display",
@@ -84,12 +84,12 @@ const SAMPLE_LIBRARY = [
       {id:"g2",  signal:"HDMI",        qty:1, connector:"HDMI Type A",   direction:"Input",  side:"left",  description:"HDMI 2"},
       {id:"g3",  signal:"HDMI",        qty:1, connector:"HDMI Type A",   direction:"Input",  side:"left",  description:"HDMI 3 ARC"},
       {id:"g4",  signal:"USB-A",       qty:2, connector:"USB Type-A",    direction:"Input",  side:"left",  description:"USB 2.0"},
-      {id:"g5",  signal:"RS-232",      qty:1, connector:"TRS 3.5mm",     direction:"Input",  side:"left",  description:"RS-232C"},
-      {id:"g6",  signal:"RJ45 LAN",    qty:1, connector:"RJ45",          direction:"Input",  side:"left",  description:"LAN"},
-      {id:"g7",  signal:"IR",          qty:1, connector:"TRS 3.5mm",     direction:"Input",  side:"left",  description:"IR"},
-      {id:"g8",  signal:"IEC Power",   qty:1, connector:"IEC 60320 C13", direction:"Input",  side:"left",  description:"POWER"},
-      {id:"g9",  signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",     direction:"Output", side:"right", description:"STEREO"},
-      {id:"g10", signal:"RS-232",      qty:1, connector:"TRS 3.5mm",     direction:"Output", side:"right", description:"RS-232C"},
+      {id:"g5",  signal:"RS-232",      qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"RS-232C"},
+      {id:"g6",  signal:"RJ45 LAN",    qty:1, connector:"RJ45",         direction:"Input",  side:"left",  description:"LAN"},
+      {id:"g7",  signal:"IR",          qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"IR"},
+      {id:"g8",  signal:"IEC Power",   qty:1, connector:"IEC 60320 C13",direction:"Input",  side:"left",  description:"POWER"},
+      {id:"g9",  signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"STEREO"},
+      {id:"g10", signal:"RS-232",      qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"RS-232C"},
     ]},
 
   { id:"eq-006", manufacturer:"Samsung", model:"WA86D", category:"Display",
@@ -105,27 +105,27 @@ const SAMPLE_LIBRARY = [
       {id:"g6",  signal:"USB-C",       qty:1, connector:"USB Type-C",    direction:"Input",  side:"left",  description:"USB-C"},
       {id:"g7",  signal:"USB-A",       qty:1, connector:"USB Type-A",    direction:"Input",  side:"left",  description:"USB 2.0"},
       {id:"g8",  signal:"USB-A",       qty:3, connector:"USB Type-A",    direction:"Input",  side:"left",  description:"USB 3.0"},
-      {id:"g9",  signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",     direction:"Input",  side:"left",  description:"LINE-IN"},
+      {id:"g9",  signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"LINE-IN"},
       {id:"g10", signal:"RS-232",      qty:1, connector:"DB-9",          direction:"Input",  side:"left",  description:"RS-232-IN"},
-      {id:"g11", signal:"IR",          qty:1, connector:"TRS 3.5mm",     direction:"Input",  side:"left",  description:"IR-IN"},
-      {id:"g12", signal:"RJ45 LAN",    qty:1, connector:"RJ45",          direction:"Input",  side:"left",  description:"LAN"},
-      {id:"g13", signal:"IEC Power",   qty:1, connector:"IEC 60320 C13", direction:"Input",  side:"left",  description:"PWR"},
-      {id:"g14", signal:"HDMI",        qty:1, connector:"HDMI Type A",   direction:"Output", side:"right", description:"HDMI-OUT"},
-      {id:"g15", signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",     direction:"Output", side:"right", description:"LINE-OUT"},
-      {id:"g16", signal:"RS-232",      qty:1, connector:"DB-9",          direction:"Output", side:"right", description:"RS-232 OUT"},
-      {id:"g17", signal:"RJ45 LAN",    qty:1, connector:"RJ45",          direction:"Output", side:"right", description:"LAN LP"},
+      {id:"g11", signal:"IR",          qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"IR-IN"},
+      {id:"g12", signal:"RJ45 LAN",    qty:1, connector:"RJ45",         direction:"Input",  side:"left",  description:"LAN"},
+      {id:"g13", signal:"IEC Power",   qty:1, connector:"IEC 60320 C13",direction:"Input",  side:"left",  description:"PWR"},
+      {id:"g14", signal:"HDMI",        qty:1, connector:"HDMI Type A",  direction:"Output", side:"right", description:"HDMI-OUT"},
+      {id:"g15", signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"LINE-OUT"},
+      {id:"g16", signal:"RS-232",      qty:1, connector:"DB-9",         direction:"Output", side:"right", description:"RS-232 OUT"},
+      {id:"g17", signal:"RJ45 LAN",    qty:1, connector:"RJ45",         direction:"Output", side:"right", description:"LAN LP"},
     ]},
 ];
 
 
 function TinyBlock({ eq }) {
-  const pins   = expandGroups(eq.groups || []);
-  const left   = pins.filter(p => p.side === "left");
-  const right  = pins.filter(p => p.side === "right");
-  const rows   = Math.max(left.length, right.length, 1);
-  const bH     = HEADER_H + rows * ROW_H + FOOTER_H;
-  const bW     = PAD_W + BODY_W + PAD_W;
-  const SCALE  = 0.28;
+  const pins = expandGroups(eq.groups || []);
+  const left = pins.filter(p => p.side === "left");
+  const right = pins.filter(p => p.side === "right");
+  const rows = Math.max(left.length, right.length, 1);
+  const bH = HEADER_H + rows * ROW_H + FOOTER_H;
+  const bW = PAD_W + BODY_W + PAD_W;
+  const SCALE = 0.28;
   return (
     <div style={{ position:"absolute", top:8, right:8,
       width: bW * SCALE, height: bH * SCALE, overflow:"hidden",
@@ -179,18 +179,18 @@ function LibItem({ eq, onDragStart, blocks }) {
         background:"#1e2433", border:"0.5px solid #2d3a52",
         cursor:"grab", userSelect:"none" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:2 }}>
-        <div style={{ fontSize:10, color:"#7a8ab0" }}>{eq.manufacturer}</div>
-        <span style={{ fontSize:9, background:"#2d3555", color:"#7a8ab0",
+        <div style={{ fontSize:11, color:"#7a8ab0" }}>{eq.manufacturer}</div>
+        <span style={{ fontSize:10, background:"#2d3555", color:"#7a8ab0",
           border:"0.5px solid #3d4663", borderRadius:3, padding:"1px 5px", whiteSpace:"nowrap", marginLeft:6 }}>
           {eq.category}
         </span>
       </div>
-      <div style={{ fontSize:13, fontWeight:500, color:"#c8d0e8" }}>{eq.model}</div>
+      <div style={{ fontSize:14, fontWeight:500, color:"#c8d0e8" }}>{eq.model}</div>
       {nextName && (
         <div style={{ display:"flex", alignItems:"center", gap:5, marginTop:3 }}>
-          <span style={{ fontSize:9, color:"#388bfd", fontWeight:500 }}>{nextName}</span>
+          <span style={{ fontSize:10, color:"#388bfd", fontWeight:500 }}>{nextName}</span>
           {nextName !== eq.systemName && (
-            <span style={{ fontSize:8, color:"#555e7a" }}>(was {eq.systemName})</span>
+            <span style={{ fontSize:9, color:"#555e7a" }}>(was {eq.systemName})</span>
           )}
         </div>
       )}
@@ -199,12 +199,12 @@ function LibItem({ eq, onDragStart, blocks }) {
 }
 
 export default function Sidebar({ blocks, onDragStart }) {
-  const [search, setSearch]       = useState("");
+  const [search, setSearch] = useState("");
   const [filterMfr, setFilterMfr] = useState("All");
   const [filterCat, setFilterCat] = useState("All");
 
   const manufacturers = ["All", ...new Set(SAMPLE_LIBRARY.map(e => e.manufacturer))];
-  const categories    = ["All", ...new Set(SAMPLE_LIBRARY.map(e => e.category))];
+  const categories = ["All", ...new Set(SAMPLE_LIBRARY.map(e => e.category))];
 
   const filtered = SAMPLE_LIBRARY.filter(eq => {
     const q = search.toLowerCase();
@@ -217,30 +217,48 @@ export default function Sidebar({ blocks, onDragStart }) {
   });
 
   return (
-    <div style={{ width:140, background:"#13161f", borderRight:"1px solid #1e2433",
+    <div style={{ width:200, background:"#13161f", borderRight:"1px solid #1e2433",
       display:"flex", flexDirection:"column", flexShrink:0, overflow:"hidden" }}>
-      <div style={{ padding:"8px 8px 6px" }}>
+
+      {/* ── Brand header ── */}
+      <div style={{ padding:"12px 12px 10px", borderBottom:"1px solid #1e2433",
+        display:"flex", alignItems:"center", gap:8 }}>
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+          <rect x="2" y="2" width="7" height="7" rx="1.5" fill="#388bfd" opacity="0.9"/>
+          <rect x="11" y="2" width="7" height="7" rx="1.5" fill="#388bfd" opacity="0.6"/>
+          <rect x="2" y="11" width="7" height="7" rx="1.5" fill="#388bfd" opacity="0.6"/>
+          <rect x="11" y="11" width="7" height="7" rx="1.5" fill="#388bfd" opacity="0.35"/>
+        </svg>
+        <span style={{ color:"#c8d0e8", fontWeight:700, fontSize:15, letterSpacing:"0.5px" }}>
+          AVFlow
+        </span>
+      </div>
+
+      {/* ── Search & filters ── */}
+      <div style={{ padding:"10px 10px 8px" }}>
         <input value={search} onChange={e => setSearch(e.target.value)}
           placeholder="Search model, system name..."
           onKeyDown={e => e.stopPropagation()}
           style={{ width:"100%", background:"#1e2433", border:"0.5px solid #2d3a52",
-            borderRadius:5, color:"#c8d0e8", fontSize:10, padding:"5px 8px",
+            borderRadius:5, color:"#c8d0e8", fontSize:12, padding:"6px 10px",
             outline:"none", boxSizing:"border-box" }} />
         <select value={filterMfr} onChange={e => setFilterMfr(e.target.value)}
-          style={{ width:"100%", marginTop:5, background:"#1e2433", border:"0.5px solid #2d3a52",
-            borderRadius:4, color:"#8892a8", fontSize:9, padding:"3px 6px" }}>
+          style={{ width:"100%", marginTop:6, background:"#1e2433", border:"0.5px solid #2d3a52",
+            borderRadius:4, color:"#8892a8", fontSize:11, padding:"5px 8px" }}>
           {manufacturers.map(m => <option key={m}>{m}</option>)}
         </select>
         <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
-          style={{ width:"100%", marginTop:4, background:"#1e2433", border:"0.5px solid #2d3a52",
-            borderRadius:4, color:"#8892a8", fontSize:9, padding:"3px 6px" }}>
+          style={{ width:"100%", marginTop:5, background:"#1e2433", border:"0.5px solid #2d3a52",
+            borderRadius:4, color:"#8892a8", fontSize:11, padding:"5px 8px" }}>
           {categories.map(c => <option key={c}>{c}</option>)}
         </select>
-        <div style={{ fontSize:8, color:"#555e7a", marginTop:5 }}>
+        <div style={{ fontSize:10, color:"#555e7a", marginTop:6 }}>
           {filtered.length} BLOCKS · DRAG TO CANVAS
         </div>
       </div>
-      <div style={{ flex:1, overflowY:"auto", padding:"0 8px 8px" }}>
+
+      {/* ── Library list ── */}
+      <div style={{ flex:1, overflowY:"auto", padding:"0 10px 10px" }}>
         {filtered.map(eq => (
           <LibItem key={eq.id} eq={eq} blocks={blocks} onDragStart={onDragStart} />
         ))}
