@@ -1,5 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { SAMPLE_LIBRARY } from "../src/components/Sidebar.jsx";
+import { fsaSupported, loadHandle, saveHandle, verifyPermission, pickDirectory,
+         readAllBlocks, saveBlock, deleteBlock } from "../src/db.js";
 
 // ── CSS variables ─────────────────────────────────────────────────────────────
 const _style = document.createElement("style");
@@ -116,7 +118,7 @@ const newGroup = (side) => ({
 const defaultNewEquipment = () => ({
   id: `eq-${Date.now()}`, manufacturer: "", model: "", category: "Other",
   width: 17, height: 1.75, depth: 8, unit: "in", wattage: 0,
-  systemName: "", location: "", groups: []
+  systemName: "", location: "COMM1", notes: "", groups: []
 });
 
 function expandGroups(groups) {
@@ -138,6 +140,8 @@ function expandGroups(groups) {
 
 const INITIAL_LIBRARY = (SAMPLE_LIBRARY || []).map(eq => ({
   ...eq,
+  notes:    eq.notes    || "",
+  location: eq.location || "COMM1",
   groups: (eq.groups || []).map(g => ({
     ...g,
     direction:   g.direction   || "Input",
@@ -480,7 +484,7 @@ function SidePanel({ groups, side, onUpdate, onDelete, onMove, onAdd, onReorder 
   );
 }
 
-function BlockEditor({ equipment, onSave, onCancel }) {
+function BlockEditor({ equipment, onSave, onCancel, manufacturers = [] }) {
   const [eq, setEq] = useState({ ...equipment, groups: equipment.groups || [] });
   const set = (key, val) => setEq(prev => ({ ...prev, [key]: val }));
   const updateGroup   = (id, g)      => setEq(prev => ({ ...prev, groups: prev.groups.map(x => x.id === id ? g : x) }));
@@ -507,8 +511,14 @@ function BlockEditor({ equipment, onSave, onCancel }) {
   };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 2fr", gap: 10, padding: "12px 16px", background: "var(--color-background-secondary)", borderRadius: 10, border: "0.5px solid var(--color-border-tertiary)" }}>
-        <div><label style={labelStyle}>Manufacturer</label><input value={eq.manufacturer} onChange={e => set("manufacturer", e.target.value)} placeholder="e.g. Samsung" /></div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, padding: "12px 16px", background: "var(--color-background-secondary)", borderRadius: 10, border: "0.5px solid var(--color-border-tertiary)" }}>
+        <div><label style={labelStyle}>Manufacturer</label>
+          <input value={eq.manufacturer} onChange={e => set("manufacturer", e.target.value)}
+            placeholder="e.g. Samsung" list="mfr-list" autoComplete="off" />
+          <datalist id="mfr-list">
+            {manufacturers.filter(Boolean).map(m => <option key={m} value={m} />)}
+          </datalist>
+        </div>
         <div><label style={labelStyle}>Model</label><input value={eq.model} onChange={e => set("model", e.target.value)} placeholder="e.g. QB85C" /></div>
         <div><label style={labelStyle}>System name</label><input value={eq.systemName} onChange={e => set("systemName", e.target.value)} placeholder="e.g. DIS01" /></div>
         <div><label style={labelStyle}>Category</label>
@@ -516,7 +526,11 @@ function BlockEditor({ equipment, onSave, onCancel }) {
             {CATEGORIES.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
-        <div><label style={labelStyle}>Location</label><input value={eq.location} onChange={e => set("location", e.target.value)} placeholder="e.g. J1.01 (FRONT WALL)" /></div>
+        <div style={{ gridColumn: "span 2" }}><label style={labelStyle}>Description / notes</label>
+          <textarea value={eq.notes || ""} onChange={e => set("notes", e.target.value)}
+            placeholder="Describe the equipment, special requirements, notes for the equipment list..."
+            rows={3} style={{ resize: "vertical", width: "100%", boxSizing: "border-box", fontFamily: "inherit", fontSize: 13, minHeight: 60 }} />
+        </div>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: "12px 16px", background: "var(--color-background-secondary)", borderRadius: 10, border: "0.5px solid var(--color-border-tertiary)", alignItems: "end" }}>
         <div style={{ width: 80 }}><label style={labelStyle}>Width</label><input type="number" value={eq.width} onChange={e => set("width", +e.target.value)} /></div>
@@ -600,13 +614,96 @@ function EquipmentCard({ eq, onEdit, onDelete }) {
 // ── Root ──────────────────────────────────────────────────────────────────────
 
 export default function LibraryApp() {
-  const [library,   setLibrary]   = useState(INITIAL_LIBRARY);
-  const [view,      setView]      = useState("library");
-  const [editing,   setEditing]   = useState(null);
-  const [search,    setSearch]    = useState("");
-  const [filterCat, setFilterCat] = useState("All");
-  const [filterMfr, setFilterMfr] = useState("All");
-  const [confirmDelete, setConfirmDelete] = useState(null); // eq object to confirm deletion
+  const [library,       setLibrary]       = useState(INITIAL_LIBRARY);
+  const [view,          setView]          = useState("library");
+  const [editing,       setEditing]       = useState(null);
+  const [search,        setSearch]        = useState("");
+  const [filterCat,     setFilterCat]     = useState("All");
+  const [filterMfr,     setFilterMfr]     = useState("All");
+  const [confirmDelete, setConfirmDelete] = useState(null);
+  const [dirHandle,     setDirHandle]     = useState(null);
+  const [dbStatus,      setDbStatus]      = useState("disconnected"); // "disconnected"|"connected"|"syncing"|"saving"|"error"
+
+  // On mount: restore persisted directory handle
+  useEffect(() => {
+    (async () => {
+      if (!fsaSupported) return;
+      const h = await loadHandle().catch(() => null);
+      if (!h) return;
+      const ok = await verifyPermission(h).catch(() => false);
+      if (!ok) return;
+      setDirHandle(h);
+      setDbStatus("syncing");
+      try {
+        const data = await readAllBlocks(h);
+        if (data.length > 0) setLibrary(data);
+        setDbStatus("connected");
+      } catch (e) { console.error(e); setDbStatus("error"); }
+    })();
+  }, []);
+
+  const handlePickFolder = async () => {
+    try {
+      const h = await pickDirectory();
+      setDirHandle(h);
+      setDbStatus("syncing");
+      const data = await readAllBlocks(h);
+      if (data.length > 0) setLibrary(data);
+      setDbStatus("connected");
+    } catch (e) {
+      if (e.name !== "AbortError") { console.error(e); setDbStatus("error"); }
+    }
+  };
+
+  const handleSyncFromDatabase = async () => {
+    if (!dirHandle) return;
+    setDbStatus("syncing");
+    try {
+      const ok = await verifyPermission(dirHandle);
+      if (!ok) { setDbStatus("error"); return; }
+      const data = await readAllBlocks(dirHandle);
+      if (data.length > 0) setLibrary(data);
+      setDbStatus("connected");
+    } catch (e) { console.error(e); setDbStatus("error"); }
+  };
+
+  const handleSave = async (eq) => {
+    if (!eq.manufacturer || !eq.manufacturer.trim()) {
+      alert("Please set a Manufacturer before saving.");
+      return;
+    }
+    const updated = library.find(e => e.id === eq.id)
+      ? library.map(e => e.id === eq.id ? eq : e)
+      : [...library, eq];
+    setLibrary(updated);
+    setView("library"); setEditing(null);
+    if (dirHandle) {
+      setDbStatus("saving");
+      try {
+        const ok = await verifyPermission(dirHandle);
+        if (!ok) { setDbStatus("error"); return; }
+        await saveBlock(dirHandle, eq, updated);
+        setDbStatus("connected");
+      } catch (e) { console.error(e); setDbStatus("error"); }
+    }
+  };
+
+  const handleDelete = async (id) => {
+    const eq = library.find(e => e.id === id);
+    if (!eq) return;
+    const updated = library.filter(e => e.id !== id);
+    setLibrary(updated);
+    setConfirmDelete(null);
+    if (dirHandle) {
+      setDbStatus("saving");
+      try {
+        const ok = await verifyPermission(dirHandle);
+        if (!ok) { setDbStatus("error"); return; }
+        await deleteBlock(dirHandle, id, eq.manufacturer, library);
+        setDbStatus("connected");
+      } catch (e) { console.error(e); setDbStatus("error"); }
+    }
+  };
 
   const manufacturers = ["All", ...Array.from(new Set(library.map(e => e.manufacturer).filter(Boolean))).sort()];
   const filtered = library.filter(eq => {
@@ -615,11 +712,6 @@ export default function LibraryApp() {
       && (filterCat === "All" || eq.category === filterCat)
       && (filterMfr === "All" || eq.manufacturer === filterMfr);
   });
-
-  const handleSave = (eq) => {
-    setLibrary(prev => prev.find(e => e.id === eq.id) ? prev.map(e => e.id === eq.id ? eq : e) : [...prev, eq]);
-    setView("library"); setEditing(null);
-  };
 
   return (
     <div style={{ fontFamily: "var(--font-sans)", padding: "1rem 0", color: "var(--color-text-primary)" }}>
@@ -675,7 +767,7 @@ export default function LibraryApp() {
           </div>
         </>
       )}
-      {view === "editor" && editing && <BlockEditor equipment={editing} onSave={handleSave} onCancel={() => { setEditing(null); setView("library"); }} />}
+      {view === "editor" && editing && <BlockEditor equipment={editing} onSave={handleSave} onCancel={() => { setEditing(null); setView("library"); }} manufacturers={[...new Set(library.map(e => e.manufacturer).filter(Boolean))].sort()} />}
 
       {/* ── Delete confirmation modal ── */}
       {confirmDelete && (
@@ -707,10 +799,7 @@ export default function LibraryApp() {
                 Cancel
               </button>
               <button
-                onClick={() => {
-                  setLibrary(prev => prev.filter(e => e.id !== confirmDelete.id));
-                  setConfirmDelete(null);
-                }}
+                onClick={() => handleDelete(confirmDelete.id)}
                 style={{
                   padding: "7px 18px", fontSize: 13, cursor: "pointer", borderRadius: 6, fontWeight: 500,
                   background: "var(--color-background-danger)",
