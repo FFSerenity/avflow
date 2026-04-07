@@ -2,236 +2,143 @@
 
 A CAD-style schematic design tool for AV (Audio/Visual) system integration. Built with React + Vite. Draw equipment blocks, wire them together, annotate, and organise into location zones.
 
----
-
 ## Quick Start
 
 ```bash
 npm install
-npm run dev
-# Open http://localhost:5173
+
+# Main canvas
+npm run dev        # → http://localhost:5173
+
+# Block library (separate dev server)
+npm run dev:lib    # → http://localhost:5174
 ```
 
----
-
-## Architecture Overview
+## Project Structure
 
 ```
-src/
-  Canvas.jsx        — Main app (3 300+ lines): all state, interaction, rendering
-  BlockLibrary.jsx  — Equipment block definitions (Module 1)
-  main.jsx          — React entry point
-index.html          — App shell + global styles
+avflow/
+  src/
+    Canvas.jsx               — Main app: all canvas state, interaction, rendering
+    constants.js             — Signal colours, grid/layout constants
+    geometry.js              — Pin positioning, wire routing, expand-groups
+    main.jsx                 — React entry point
+    components/
+      BlockView.jsx          — Canvas block renderer (pins, header, body, footer)
+      Sidebar.jsx            — Left panel: block library, search, filters, SAMPLE_LIBRARY
+  library-dev/
+    LibraryApp.jsx           — Standalone block library UI (grid + block editor)
+    index.html               — HTML shell for library dev server
+    main.jsx                 — Library entry point
+    vite.config.js           — Port 5174, resolves ../src imports
+  index.html                 — App shell
+  package.json
+  vite.config.js
 ```
 
-Everything lives in `Canvas.jsx`. It is one large functional component. Splitting into sub-files is planned for Module 3.
+## Architecture
 
----
+### Canvas (`src/Canvas.jsx`)
+The main application. All state, interaction, and rendering lives here. Key areas:
+- **Block management** — drag from sidebar, place, move, select, delete
+- **Wire routing** — click pin → click pin to connect, animated dashes
+- **Location zones** — draw rectangular zones, label by location
+- **Annotations** — sticky-note style text labels
+- **IP info** — per-block IP/MAC/port badges shown above the block
+- **Context menus** — right-click blocks and wires for actions
+- **Export** — PNG snapshot of the canvas
 
-## Feature Map
+### Block rendering (`src/components/BlockView.jsx`)
+Renders a single equipment block on the canvas. Layout constants (all in `src/constants.js`):
 
-### 1. Equipment Blocks
+| Constant | Value | Purpose |
+|----------|-------|---------|
+| `ROW_H` | 16px | Height of each pin row |
+| `HEADER_H` | 40px | Block header (system name / mfr / model) |
+| `FOOTER_H` | 16px | Block footer (location / wattage) |
+| `BODY_W` | 160px | Body width |
+| `PAD_W` | 64px | Stub area on each side |
+| `DOT_R` | 4px | Pin dot radius |
+| `STUB_W` | 28px | Pin stub line length |
 
-- Dragged from the **sidebar library** onto the canvas
-- Each block has a **header** (system name, manufacturer, model), **body** (pin rows), and **footer** (location, wattage)
-- Pins expand from group definitions: `{ signal, qty, connector, direction, side }`
-- Left pins = inputs, right pins = outputs
-- **Double-click system name** in header to rename inline
-- **Right-click block body** → Network Info modal (IP / MAC / PORT), displayed as badges above the header
+Total block width = `PAD_W + BODY_W + PAD_W` = **288px**
 
-### 2. Wires
+### Signal colours (`src/constants.js`)
 
-- Left-click drag or click a pin dot → click destination pin dot to connect
-- Color-coded by signal type (HDMI red, USB purple, LAN teal, RS-232 pink, power grey…)
-- **`vx`** = x position of the vertical segment (drag the segment ↔ to move)
-- **Add turn** (right-click wire) → inserts `{vx1, vx2, vy}` turn with three draggable handles
-- Cable numbers auto-assigned by signal prefix (5xxx HDMI, 4xxx LAN, 9xxx USB…)
-- Cable number labels float 1.5 grids from each pin on the first/last horizontal segment
-- DRC: mismatched signal types render red dashed
-- **Hit detection**: per-segment `<line>` elements with `pointer-events="stroke"` — interior of enclosed wire shapes does not trigger selection
+| Signal type | Colour |
+|-------------|--------|
+| HDMI / DP / DVI / VGA / SDI | `#E24B4A` red |
+| USB (all variants) | `#7F77DD` purple |
+| RJ45 LAN / PoE / DM | `#1D9E75` teal |
+| Audio / Phoenix | `#EF9F27` amber |
+| RS-232 / IR / GPIO / Relay | `#D4537E` pink |
+| Power (IEC / NEMA / DC) | `#888780` grey |
+| Fiber / Coax / BNC | `#85B7EB` blue |
 
-### 3. Feather / Jump Tags
+### Block Library (`library-dev/`)
+A standalone Vite dev server for creating and editing equipment blocks. Imports `SAMPLE_LIBRARY` from `src/components/Sidebar.jsx` so both apps share the same block data.
 
-- Right-click drag OR right-click click a pin dot → creates a feather instead of a wire
-- Source tag: chevron points **away** from its pin
-- Dest tag: chevron points **toward** its pin
-- Tag position stored as **pin-relative offset** (follows block when moved)
-- **Drag chevron ↔** to extend/shorten the tail
-- **Add turn** (right-click chevron) → L-shaped tail with vertical seg + new horizontal + chevron at end
-  - Vertical segment drag ↔ moves `srcVx` / `dstVx`
-  - Horizontal bridge drag ↕ moves `srcVy` / `dstVy`
-  - Chevron drag ↔ extends `srcVx2` / `dstVx2`
-- Source and dest turns are independent per tag
-
-### 4. Location Boxes
-
-- **Right-click empty canvas** → "Add location box"
-- Full-width top strip = move handle; 8 resize handles on edges and corners
-- **Double-click label** → rename inline; on blur, all blocks whose centre falls inside update their `location` field
-- Multi-select: Ctrl+click = add, Shift+click = remove, marquee = window/crossing
-- Selected boxes move together with any co-selected blocks and annotations
-
-### 5. Spare Cable Runs
-
-- **Right-click near a location box edge** → "Add spare cable run"
-- Modal: set signal type, quantity, estimated length → click Next
-- Canvas enters crosshair mode; **left-click** another location box edge to complete the run
-- Rendered as a dashed line in signal color with anchor dots on both box edges
-- Two-line centre badge: `SPARE 4S01` / `×4 CAT6 · 15m`
-- Selectable, deletable, supports turns (same model as wires)
-
-### 6. Annotations
-
-Seven tools in the top-right toolbar (collapses to active tool icon):
-
-| Tool | Shape |
-|---|---|
-| Text note | HTML overlay textarea, word-wraps to match SVG render |
-| Leader | Line with arrowhead + editable label |
-| Rectangle | Rect outline |
-| Ellipse | Ellipse outline |
-| Cloud | AutoCAD revision cloud (arc-per-side) |
-| Arrow | Straight arrow |
-| Dimension | Dimension line with editable value |
-
-- 5 colours selectable in toolbar
-- Right-click → Edit text / Duplicate / Delete
-- Participate in multi-select and unified move/delete
-
-### 7. Selection System
-
-| Action | Result |
-|---|---|
-| Plain click | Exclusive select (clears all other types) |
-| Ctrl+click | Add to selection |
-| Shift+click | Remove from selection |
-| Left→right drag | Window select (fully inside only) |
-| Right→left drag | Crossing select (anything touching) |
-| Delete / Backspace | Delete all selected items in one pass |
-
-All element types (blocks, wires, feathers, annotations, location boxes, spare runs) participate in the same selection system. Dragging any element in a multi-select group moves all selected elements together, including wire `vx`/`vy` adjustment for wires where both endpoints are selected.
-
-### 8. Network Info
-
-- Right-click block body → "Add/Edit network info"
-- Fields: IP (green), MAC (blue), PORT (amber)
-- Stored as `block.ipInfo = { ip, mac, port }`
-- Displayed as stacked pill badges above the block header when set
-- "Clear network info" removes all fields
-
-### 9. Canvas Navigation
-
-- **Scroll** to zoom (toward cursor)
-- **Alt+drag** to pan
-- Zoom range: 0.2× – 3×
-- 16px grid with snap
-
----
+**Card layout:** Fixed 200×200px squares. Preview viewport is 190×126px.  
+Scale formula: `SCALE = Math.min(1, 190 / blockW, 126 / blockH)` — blocks auto-fit with no overflow.  
+Change `CARD_SIZE` in `LibraryApp.jsx` to resize all cards; update `CARD_PREVIEW_W/H` to match (measure from DevTools after resizing).
 
 ## Data Model
 
-### Block
+### Equipment block
 ```js
 {
-  id: "b-1",
-  eq: { /* equipment definition from library */ },
-  x, y,                    // canvas position (snapped to 4px grid)
+  id: "eq-001",
+  manufacturer: "Samsung",
+  model: "QB85C",
+  category: "Display",
+  width: 75.6, height: 44.3, depth: 2.5, unit: "in",
+  wattage: 300,
   systemName: "DIS01",
-  location: "Room A",
-  ipInfo: { ip, mac, port } // optional
+  location: "J1.01 (FRONT WALL)",
+  groups: [
+    {
+      id: "g1",
+      signal: "HDMI",           // see SIGNAL_TYPES in LibraryApp.jsx
+      qty: 3,                   // expands to 3 individual pins
+      connector: "HDMI Type A",
+      direction: "Input" | "Output" | "Bidirectional",
+      side: "left" | "right",
+      description: ""           // auto-generates "HDMI 01/02/03" if blank
+    }
+  ]
+}
+```
+
+### Canvas block (extends equipment block)
+```js
+{
+  id: "block-1",
+  eq: { /* equipment block above */ },
+  x: 320, y: 240,           // canvas position
+  systemName: "DIS01",       // may override eq.systemName
+  location: "RACK01",        // may override eq.location
+  ipInfo: { ip: "192.168.1.10", mac: "AA:BB:CC:DD:EE:FF", port: "80" }
 }
 ```
 
 ### Wire
 ```js
 {
-  id: "w-1",
-  fromBlockId, fromPinId,
-  toBlockId, toPinId,
-  signal, color, cableNum,
-  dashed: false,           // true = DRC mismatch
-  vx: null,                // vertical segment x (absolute canvas coords)
-  turns: [{ vx1, vx2, vy }], // each turn adds one staircase bend
-  feather: false,          // true = jump tag instead of wire
-  // feather-only:
-  vx: null,   // srcOffset (pin-relative)
-  vx2: null,  // dstOffset (pin-relative)
-  srcVy, dstVy,            // vertical bend offsets
-  srcVx2, dstVx2,          // new horizontal reach after bend
+  id: "wire-1",
+  fromBlock: "block-1", fromPin: "g1-1",  // pin id = groupId-pinIndex
+  toBlock:   "block-2", toPin:   "g2-1",
+  signal: "HDMI"
 }
 ```
 
-### Location Box
-```js
-{
-  id: "lb-1",
-  x, y, w, h,
-  label: "Room A Rack"
-}
-```
+## Roadmap
 
-### Spare Run
-```js
-{
-  id: "sp-1",
-  fromLocBoxId, fromEdgeY,  // right edge of fromLb + Y offset
-  toLocBoxId, toEdgeY,      // left edge of toLb + Y offset
-  signal, color, cableNum,
-  qty: "4", length: "15m",
-  vx: null, turns: []       // same routing model as wires
-}
-```
+| Module | Status | Description |
+|--------|--------|-------------|
+| 1 — Block Library | ✅ Done | Equipment block editor + card grid (`library-dev/`) |
+| 2 — Canvas | ✅ Done | Drag, wire, zone, annotate, export |
+| 3 — Data Layer | 🔲 Planned | Save/load JSON, sync library ↔ canvas, SQLite import |
+| 4 — Reports | 🔲 Planned | Cable schedule, equipment list, rack elevation export |
 
----
-
-## Pending Modules
-
-| Module | Description |
-|---|---|
-| 3 | Project & Data Layer (save/load JSON, connect full Samsung DB) |
-| 4 | Wiring Rules Engine (configurable cable numbering, DRC rules) |
-| 5 | Outputs (cable pull schedule Excel, rack elevation, DWG export) |
-| 6 | Template System |
-| — | Undo/Redo (history stack) |
-| — | Excel import/export (block/wire data round-trip) |
-
----
-
-## Signal Colors
-
-| Signal | Color |
-|---|---|
-| HDMI, DisplayPort, DVI, VGA, SDI | `#E24B4A` red |
-| USB-A, USB-B, USB-C | `#7F77DD` purple |
-| RJ45 LAN | `#1D9E75` teal |
-| Audio, Phoenix, 3.5mm | `#EF9F27` amber |
-| RS-232, IR, Control | `#D4537E` pink |
-| IEC Power, DC | `#888780` grey |
-| Fiber, Coaxial | `#85B7EB` blue |
-
-## Cable Number Prefixes
-
-| Prefix | Signal |
-|---|---|
-| 1xxx | Audio |
-| 2xxx | Speaker |
-| 3xxx | Power |
-| 4xxx | CAT / LAN |
-| 5xxx | Video |
-| 6xxx | Coax |
-| 7xxx | Fiber |
-| 8xxx | Control |
-| 9xxx | USB |
-
-Spare runs use the same prefix + `S` suffix: `4S01`, `5S01`, etc.
-
----
-
-## Samsung Equipment Database
-
-File: `Samsung.xml` (actually SQLite — rename to `.db` to open with SQLite tools)
-
-- 158 equipment rows in `Full_Table` and `EQ`
-- Pin encoding: `SignalType:Qty_Connector(Description` backslash-delimited
-- Dimensions in mm; `INs` = left side, `OUTs` = right side
-- Ready for full library import when Module 3 is built
+## Repo
+[https://github.com/FFSerenity/avflow](https://github.com/FFSerenity/avflow)
