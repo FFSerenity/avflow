@@ -1,122 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SIGNAL_COLORS, ROW_H, HEADER_H, FOOTER_H, BODY_W, PAD_W, STUB_W, DOT_R } from "../constants.js";
 import { expandGroups, getPrefix, getNextSysName } from "../geometry.js";
+import { fsaSupported, loadHandle, saveHandle, verifyPermission, pickDirectory, readAllBlocks, fetchFromUrl } from "../db.js";
 
+// Fallback built-in library (used when no database folder is connected)
 const SAMPLE_LIBRARY = [
   { id:"eq-001", manufacturer:"Samsung", model:"QB85C", category:"Display",
     comment:"85\" Crystal UHD Signage",
     width:74.97, height:42.73, depth:1.12, unit:"in", wattage:300,
     systemName:"DIS01", location:"",
     groups:[
-      {id:"g1", signal:"HDMI",       qty:2, connector:"HDMI Type A",    direction:"Input",  side:"left",  description:"HDMI"},
-      {id:"g2", signal:"HDMI",       qty:1, connector:"HDMI Type A",    direction:"Input",  side:"left",  description:"HDMI 3 ARC"},
-      {id:"g3", signal:"USB-A",      qty:2, connector:"USB Type-A",     direction:"Input",  side:"left",  description:"USB 2.0"},
-      {id:"g4", signal:"RS-232",     qty:1, connector:"TRS 3.5mm",      direction:"Input",  side:"left",  description:"RS-232C"},
-      {id:"g5", signal:"RJ45 LAN",   qty:1, connector:"RJ45",           direction:"Input",  side:"left",  description:"LAN"},
-      {id:"g6", signal:"IR",         qty:1, connector:"TRS 3.5mm",      direction:"Input",  side:"left",  description:"IR"},
-      {id:"g7", signal:"IEC Power",  qty:1, connector:"IEC 60320 C13",  direction:"Input",  side:"left",  description:"POWER"},
-      {id:"g8", signal:"3.5mm Stereo",qty:1,connector:"TRS 3.5mm",     direction:"Output", side:"right", description:"STEREO"},
-      {id:"g9", signal:"RS-232",     qty:1, connector:"TRS 3.5mm",      direction:"Output", side:"right", description:"RS-232C"},
-    ]},
-
-  { id:"eq-002", manufacturer:"Samsung", model:"QM55R", category:"Display",
-    comment:"55\" Commercial Display",
-    width:48.6, height:27.8, depth:1.8, unit:"in", wattage:143,
-    systemName:"DIS01", location:"",
-    groups:[
-      {id:"g1",  signal:"HDMI",        qty:2, connector:"HDMI Type A",   direction:"Input",  side:"left",  description:"HDMI IN"},
-      {id:"g2",  signal:"DisplayPort", qty:1, connector:"DisplayPort",   direction:"Input",  side:"left",  description:"DP IN"},
-      {id:"g3",  signal:"DVI",         qty:1, connector:"DVI-I",         direction:"Input",  side:"left",  description:"DVI IN"},
-      {id:"g4",  signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"STEREO"},
-      {id:"g5",  signal:"RS-232",      qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"RS-232C"},
-      {id:"g6",  signal:"RJ45 LAN",    qty:1, connector:"RJ45",         direction:"Input",  side:"left",  description:"LAN"},
-      {id:"g7",  signal:"USB-A",       qty:2, connector:"USB Type-A",   direction:"Input",  side:"left",  description:"USB"},
-      {id:"g8",  signal:"IEC Power",   qty:1, connector:"IEC 60320 C13",direction:"Input",  side:"left",  description:"POWER"},
-      {id:"g9",  signal:"HDMI",        qty:1, connector:"HDMI Type A",  direction:"Output", side:"right", description:"HDMI OUT"},
-      {id:"g10", signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"STEREO"},
-      {id:"g11", signal:"RS-232",      qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"RS-232C"},
-      {id:"g12", signal:"IR",          qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"IR"},
-    ]},
-
-  { id:"eq-003", manufacturer:"Samsung", model:"QM75R", category:"Display",
-    comment:"75\" Commercial Display",
-    width:66.18, height:37.8, depth:1.96, unit:"in", wattage:231,
-    systemName:"DIS01", location:"",
-    groups:[
-      {id:"g1",  signal:"HDMI",        qty:2, connector:"HDMI Type A",   direction:"Input",  side:"left",  description:"HDMI IN"},
-      {id:"g2",  signal:"DisplayPort", qty:1, connector:"DisplayPort",   direction:"Input",  side:"left",  description:"DP IN"},
-      {id:"g3",  signal:"DVI",         qty:1, connector:"DVI-I",         direction:"Input",  side:"left",  description:"DVI IN"},
-      {id:"g4",  signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"STEREO"},
-      {id:"g5",  signal:"RS-232",      qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"RS-232C"},
-      {id:"g6",  signal:"RJ45 LAN",    qty:1, connector:"RJ45",         direction:"Input",  side:"left",  description:"LAN"},
-      {id:"g7",  signal:"USB-A",       qty:2, connector:"USB Type-A",   direction:"Input",  side:"left",  description:"USB"},
-      {id:"g8",  signal:"IEC Power",   qty:1, connector:"IEC 60320 C13",direction:"Input",  side:"left",  description:"POWER"},
-      {id:"g9",  signal:"HDMI",        qty:1, connector:"HDMI Type A",  direction:"Output", side:"right", description:"HDMI OUT"},
-      {id:"g10", signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"STEREO"},
-      {id:"g11", signal:"RS-232",      qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"RS-232C"},
-    ]},
-
-  { id:"eq-004", manufacturer:"Samsung", model:"QM43B-T", category:"Display",
-    comment:"43\" Touch Display 24/7",
-    width:38.8, height:23.0, depth:2.2, unit:"in", wattage:110,
-    systemName:"DIS01", location:"",
-    groups:[
-      {id:"g1",  signal:"HDMI",        qty:3, connector:"HDMI Type A",   direction:"Input",  side:"left",  description:"HDMI"},
-      {id:"g2",  signal:"DisplayPort", qty:1, connector:"DisplayPort",   direction:"Input",  side:"left",  description:"DP"},
-      {id:"g3",  signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"STEREO"},
-      {id:"g4",  signal:"RS-232",      qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"RS-232C"},
-      {id:"g5",  signal:"RJ45 LAN",    qty:1, connector:"RJ45",         direction:"Input",  side:"left",  description:"LAN"},
-      {id:"g6",  signal:"USB-A",       qty:2, connector:"USB Type-A",   direction:"Input",  side:"left",  description:"USB"},
-      {id:"g7",  signal:"USB-B",       qty:1, connector:"USB Type-B",   direction:"Input",  side:"left",  description:"TOUCH OUT"},
-      {id:"g8",  signal:"USB-B",       qty:1, connector:"USB Type-B",   direction:"Input",  side:"left",  description:"TOUCH PC"},
-      {id:"g9",  signal:"IEC Power",   qty:1, connector:"IEC 60320 C13",direction:"Input",  side:"left",  description:"POWER"},
-      {id:"g10", signal:"HDMI",        qty:1, connector:"HDMI Type A",  direction:"Output", side:"right", description:"HDMI"},
-      {id:"g11", signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"STEREO"},
-      {id:"g12", signal:"RS-232",      qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"RS-232C"},
-    ]},
-
-  { id:"eq-005", manufacturer:"Samsung", model:"QB65C", category:"Display",
-    comment:"65\" Crystal UHD Signage",
-    width:57.35, height:32.75, depth:1.12, unit:"in", wattage:150,
-    systemName:"DIS01", location:"",
-    groups:[
-      {id:"g1",  signal:"HDMI",        qty:1, connector:"HDMI Type A",   direction:"Input",  side:"left",  description:"HDMI 1"},
-      {id:"g2",  signal:"HDMI",        qty:1, connector:"HDMI Type A",   direction:"Input",  side:"left",  description:"HDMI 2"},
-      {id:"g3",  signal:"HDMI",        qty:1, connector:"HDMI Type A",   direction:"Input",  side:"left",  description:"HDMI 3 ARC"},
-      {id:"g4",  signal:"USB-A",       qty:2, connector:"USB Type-A",    direction:"Input",  side:"left",  description:"USB 2.0"},
-      {id:"g5",  signal:"RS-232",      qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"RS-232C"},
-      {id:"g6",  signal:"RJ45 LAN",    qty:1, connector:"RJ45",         direction:"Input",  side:"left",  description:"LAN"},
-      {id:"g7",  signal:"IR",          qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"IR"},
-      {id:"g8",  signal:"IEC Power",   qty:1, connector:"IEC 60320 C13",direction:"Input",  side:"left",  description:"POWER"},
-      {id:"g9",  signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"STEREO"},
-      {id:"g10", signal:"RS-232",      qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"RS-232C"},
-    ]},
-
-  { id:"eq-006", manufacturer:"Samsung", model:"WA86D", category:"Display",
-    comment:"86\" Interactive Touch Display",
-    width:75.8, height:44.6, depth:3.8, unit:"in", wattage:486,
-    systemName:"DIS01", location:"",
-    groups:[
-      {id:"g1",  signal:"HDMI",        qty:1, connector:"HDMI Type A",   direction:"Input",  side:"left",  description:"HDMI-IN 01"},
-      {id:"g2",  signal:"HDMI",        qty:1, connector:"HDMI Type A",   direction:"Input",  side:"left",  description:"HDMI-IN 02"},
-      {id:"g3",  signal:"HDMI",        qty:1, connector:"HDMI Type A",   direction:"Input",  side:"left",  description:"HDMI-IN 03"},
-      {id:"g4",  signal:"USB-B",       qty:1, connector:"USB Type-B",    direction:"Input",  side:"left",  description:"TOUCH 01"},
-      {id:"g5",  signal:"USB-B",       qty:1, connector:"USB Type-B",    direction:"Input",  side:"left",  description:"TOUCH 03"},
-      {id:"g6",  signal:"USB-C",       qty:1, connector:"USB Type-C",    direction:"Input",  side:"left",  description:"USB-C"},
-      {id:"g7",  signal:"USB-A",       qty:1, connector:"USB Type-A",    direction:"Input",  side:"left",  description:"USB 2.0"},
-      {id:"g8",  signal:"USB-A",       qty:3, connector:"USB Type-A",    direction:"Input",  side:"left",  description:"USB 3.0"},
-      {id:"g9",  signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"LINE-IN"},
-      {id:"g10", signal:"RS-232",      qty:1, connector:"DB-9",          direction:"Input",  side:"left",  description:"RS-232-IN"},
-      {id:"g11", signal:"IR",          qty:1, connector:"TRS 3.5mm",    direction:"Input",  side:"left",  description:"IR-IN"},
-      {id:"g12", signal:"RJ45 LAN",    qty:1, connector:"RJ45",         direction:"Input",  side:"left",  description:"LAN"},
-      {id:"g13", signal:"IEC Power",   qty:1, connector:"IEC 60320 C13",direction:"Input",  side:"left",  description:"PWR"},
-      {id:"g14", signal:"HDMI",        qty:1, connector:"HDMI Type A",  direction:"Output", side:"right", description:"HDMI-OUT"},
-      {id:"g15", signal:"3.5mm Stereo",qty:1, connector:"TRS 3.5mm",   direction:"Output", side:"right", description:"LINE-OUT"},
-      {id:"g16", signal:"RS-232",      qty:1, connector:"DB-9",         direction:"Output", side:"right", description:"RS-232 OUT"},
-      {id:"g17", signal:"RJ45 LAN",    qty:1, connector:"RJ45",         direction:"Output", side:"right", description:"LAN LP"},
+      {id:"g1",signal:"HDMI",qty:2,connector:"HDMI Type A",direction:"Input",side:"left",description:"HDMI"},
+      {id:"g2",signal:"HDMI",qty:1,connector:"HDMI Type A",direction:"Input",side:"left",description:"HDMI 3 ARC"},
+      {id:"g3",signal:"USB-A",qty:2,connector:"USB Type-A",direction:"Input",side:"left",description:"USB 2.0"},
+      {id:"g4",signal:"RS-232",qty:1,connector:"TRS 3.5mm",direction:"Input",side:"left",description:"RS-232C"},
+      {id:"g5",signal:"RJ45 LAN",qty:1,connector:"RJ45",direction:"Input",side:"left",description:"LAN"},
+      {id:"g6",signal:"IR",qty:1,connector:"TRS 3.5mm",direction:"Input",side:"left",description:"IR"},
+      {id:"g7",signal:"IEC Power",qty:1,connector:"IEC 60320 C13",direction:"Input",side:"left",description:"POWER"},
+      {id:"g8",signal:"3.5mm Stereo",qty:1,connector:"TRS 3.5mm",direction:"Output",side:"right",description:"STEREO"},
+      {id:"g9",signal:"RS-232",qty:1,connector:"TRS 3.5mm",direction:"Output",side:"right",description:"RS-232C"},
     ]},
 ];
-
 
 function TinyBlock({ eq }) {
   const pins = expandGroups(eq.groups || []);
@@ -199,22 +103,84 @@ function LibItem({ eq, onDragStart, blocks }) {
 }
 
 export default function Sidebar({ blocks, onDragStart }) {
-  const [search, setSearch] = useState("");
+  const [search,    setSearch]    = useState("");
   const [filterMfr, setFilterMfr] = useState("All");
   const [filterCat, setFilterCat] = useState("All");
+  const [library,   setLibrary]   = useState(SAMPLE_LIBRARY);
+  const [dirHandle, setDirHandle] = useState(null);
+  const [dbStatus,  setDbStatus]  = useState("built-in"); // "built-in" | "connected" | "syncing" | "error"
 
-  const manufacturers = ["All", ...new Set(SAMPLE_LIBRARY.map(e => e.manufacturer))];
-  const categories = ["All", ...new Set(SAMPLE_LIBRARY.map(e => e.category))];
+  // On mount: restore persisted directory handle and load blocks
+  useEffect(() => {
+    (async () => {
+      if (!fsaSupported) {
+        // Try URL fetch from /database/
+        try {
+          const fetched = await fetchFromUrl("/database/");
+          if (fetched.length > 0) { setLibrary(fetched); setDbStatus("connected"); }
+        } catch (_) {}
+        return;
+      }
+      const h = await loadHandle().catch(() => null);
+      if (!h) return;
+      const ok = await verifyPermission(h).catch(() => false);
+      if (!ok) return;
+      setDirHandle(h);
+      setDbStatus("syncing");
+      try {
+        const data = await readAllBlocks(h);
+        if (data.length > 0) { setLibrary(data); setDbStatus("connected"); }
+        else setDbStatus("connected");
+      } catch (e) {
+        console.error("db sync error", e);
+        setDbStatus("error");
+      }
+    })();
+  }, []);
 
-  const filtered = SAMPLE_LIBRARY.filter(eq => {
+  const handlePickFolder = async () => {
+    try {
+      const h = await pickDirectory();
+      setDirHandle(h);
+      setDbStatus("syncing");
+      const data = await readAllBlocks(h);
+      if (data.length > 0) setLibrary(data);
+      setDbStatus("connected");
+    } catch (e) {
+      if (e.name !== "AbortError") { console.error(e); setDbStatus("error"); }
+    }
+  };
+
+  const handleSync = async () => {
+    if (!dirHandle) return;
+    setDbStatus("syncing");
+    try {
+      const ok = await verifyPermission(dirHandle);
+      if (!ok) { setDbStatus("error"); return; }
+      const data = await readAllBlocks(dirHandle);
+      if (data.length > 0) setLibrary(data);
+      setDbStatus("connected");
+    } catch (e) {
+      console.error(e);
+      setDbStatus("error");
+    }
+  };
+
+  const manufacturers = ["All", ...new Set(library.map(e => e.manufacturer))];
+  const categories    = ["All", ...new Set(library.map(e => e.category))];
+
+  const filtered = library.filter(eq => {
     const q = search.toLowerCase();
     const matchesSearch = !q || eq.model.toLowerCase().includes(q) ||
       eq.manufacturer.toLowerCase().includes(q) ||
       (eq.systemName||"").toLowerCase().includes(q);
-    const matchesMfr = filterMfr === "All" || eq.manufacturer === filterMfr;
-    const matchesCat = filterCat === "All" || eq.category === filterCat;
-    return matchesSearch && matchesMfr && matchesCat;
+    return matchesSearch &&
+      (filterMfr === "All" || eq.manufacturer === filterMfr) &&
+      (filterCat === "All" || eq.category === filterCat);
   });
+
+  const statusColor = { "built-in":"#555e7a", connected:"#1D9E75", syncing:"#EF9F27", error:"#E24B4A" }[dbStatus];
+  const statusLabel = { "built-in":"built-in", connected:"database connected", syncing:"syncing…", error:"connection error" }[dbStatus];
 
   return (
     <div style={{ width:200, background:"#13161f", borderRight:"1px solid #1e2433",
@@ -229,9 +195,38 @@ export default function Sidebar({ blocks, onDragStart }) {
           <rect x="2" y="11" width="7" height="7" rx="1.5" fill="#388bfd" opacity="0.6"/>
           <rect x="11" y="11" width="7" height="7" rx="1.5" fill="#388bfd" opacity="0.35"/>
         </svg>
-        <span style={{ color:"#c8d0e8", fontWeight:700, fontSize:15, letterSpacing:"0.5px" }}>
-          AVFlow
-        </span>
+        <span style={{ color:"#c8d0e8", fontWeight:700, fontSize:15, letterSpacing:"0.5px" }}>AVFlow</span>
+      </div>
+
+      {/* ── Database panel ── */}
+      <div style={{ padding:"8px 10px", borderBottom:"1px solid #1e2433" }}>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+            <div style={{ width:6, height:6, borderRadius:"50%", background:statusColor, flexShrink:0 }} />
+            <span style={{ fontSize:10, color:statusColor }}>{statusLabel}</span>
+          </div>
+          {dirHandle && (
+            <button onClick={handleSync} disabled={dbStatus === "syncing"}
+              title="Reload all blocks from the database folder"
+              style={{ fontSize:10, padding:"2px 7px", cursor:"pointer", borderRadius:4,
+                background:"#1e2433", border:"0.5px solid #2d3a52", color:"#8892a8",
+                opacity: dbStatus === "syncing" ? 0.5 : 1 }}>
+              ↻ Sync
+            </button>
+          )}
+        </div>
+        {fsaSupported ? (
+          <button onClick={handlePickFolder}
+            title="Connect a local database folder to load blocks from JSON files"
+            style={{ width:"100%", fontSize:11, padding:"5px 0", cursor:"pointer", borderRadius:5,
+              background:"#1e2433", border:"0.5px solid #2d3a52", color:"#8892a8" }}>
+            {dirHandle ? "⌂ Change database folder" : "⌂ Connect database folder"}
+          </button>
+        ) : (
+          <div style={{ fontSize:10, color:"#555e7a", lineHeight:1.4 }}>
+            Folder sync requires Chrome or Edge
+          </div>
+        )}
       </div>
 
       {/* ── Search & filters ── */}

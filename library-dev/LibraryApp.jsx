@@ -718,7 +718,25 @@ export default function LibraryApp() {
             </span>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {fsaSupported && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                <div style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: { disconnected:"#555e7a", connected:"#1D9E75", syncing:"#EF9F27", saving:"#EF9F27", error:"#E24B4A" }[dbStatus] }} />
+                <span style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>{{ disconnected:"no database", connected:"connected", syncing:"syncing…", saving:"saving…", error:"error" }[dbStatus]}</span>
+              </div>
+              {dirHandle && (
+                <button onClick={handleSyncFromDatabase} disabled={dbStatus==="syncing"||dbStatus==="saving"}
+                  style={{ fontSize: 12, padding: "5px 12px", cursor: "pointer", borderRadius: 6, background: "var(--color-background-secondary)", border: "0.5px solid var(--color-border-secondary)", color: "var(--color-text-secondary)", opacity: (dbStatus==="syncing"||dbStatus==="saving") ? 0.5 : 1 }}>
+                  ↻ Sync from database
+                </button>
+              )}
+              <button onClick={handlePickFolder}
+                style={{ fontSize: 12, padding: "5px 12px", cursor: "pointer", borderRadius: 6, background: "var(--color-background-secondary)", border: "0.5px solid var(--color-border-secondary)", color: "var(--color-text-secondary)" }}>
+                ⌂ {dirHandle ? "Change folder" : "Connect database folder"}
+              </button>
+            </div>
+          )}
           {view === "editor" && <button onClick={() => { setEditing(null); setView("library"); }} style={{ fontSize: 13, padding: "7px 16px", cursor: "pointer" }}>← Back</button>}
           {view === "library" && <button onClick={() => { setEditing(defaultNewEquipment()); setView("editor"); }} style={{ fontSize: 13, padding: "7px 16px", cursor: "pointer", background: "var(--color-background-info)", color: "var(--color-text-info)", border: "0.5px solid var(--color-border-info)", borderRadius: 6, fontWeight: 500 }}>+ New block</button>}
         </div>
