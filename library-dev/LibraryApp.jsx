@@ -606,6 +606,7 @@ export default function LibraryApp() {
   const [search,    setSearch]    = useState("");
   const [filterCat, setFilterCat] = useState("All");
   const [filterMfr, setFilterMfr] = useState("All");
+  const [confirmDelete, setConfirmDelete] = useState(null); // eq object to confirm deletion
 
   const manufacturers = ["All", ...Array.from(new Set(library.map(e => e.manufacturer).filter(Boolean))).sort()];
   const filtered = library.filter(eq => {
@@ -670,11 +671,58 @@ export default function LibraryApp() {
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, 200px)", gap: 12, alignItems: "stretch" }}>
             {filtered.map(eq => <EquipmentCard key={eq.id} eq={eq}
               onEdit={eq => { setEditing(eq); setView("editor"); }}
-              onDelete={id => setLibrary(prev => prev.filter(e => e.id !== id))} />)}
+              onDelete={id => setConfirmDelete(library.find(e => e.id === id))} />)}
           </div>
         </>
       )}
       {view === "editor" && editing && <BlockEditor equipment={editing} onSave={handleSave} onCancel={() => { setEditing(null); setView("library"); }} />}
+
+      {/* ── Delete confirmation modal ── */}
+      {confirmDelete && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 500,
+          background: "rgba(0,0,0,0.45)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }}
+          onClick={e => { if (e.target === e.currentTarget) setConfirmDelete(null); }}>
+          <div style={{
+            background: "var(--color-background-primary)",
+            border: "0.5px solid var(--color-border-tertiary)",
+            borderRadius: 12,
+            padding: "24px 28px",
+            width: 340,
+            boxShadow: "0 8px 32px rgba(0,0,0,0.25)",
+          }}>
+            <div style={{ fontSize: 15, fontWeight: 500, marginBottom: 6 }}>Delete block?</div>
+            <div style={{ fontSize: 13, color: "var(--color-text-secondary)", marginBottom: 20 }}>
+              <span style={{ fontWeight: 500, color: "var(--color-text-primary)" }}>
+                {confirmDelete.manufacturer} {confirmDelete.model}
+              </span>
+              {" "}will be permanently removed from the library.
+            </div>
+            <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
+              <button
+                onClick={() => setConfirmDelete(null)}
+                style={{ padding: "7px 18px", fontSize: 13, cursor: "pointer", borderRadius: 6 }}>
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setLibrary(prev => prev.filter(e => e.id !== confirmDelete.id));
+                  setConfirmDelete(null);
+                }}
+                style={{
+                  padding: "7px 18px", fontSize: 13, cursor: "pointer", borderRadius: 6, fontWeight: 500,
+                  background: "var(--color-background-danger)",
+                  color: "var(--color-text-danger)",
+                  border: "0.5px solid var(--color-border-danger)",
+                }}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
