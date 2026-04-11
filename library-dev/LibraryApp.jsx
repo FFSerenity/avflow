@@ -746,7 +746,23 @@ export default function LibraryApp() {
             </span>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {/* Status dot */}
+          {fsaSupported && (
+            <div title={dbStatus} style={{
+              width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+              background: dbStatus === "connected" ? "#1D9E75"
+                        : dbStatus === "syncing" || dbStatus === "saving" ? "#EF9F27"
+                        : dbStatus === "error"   ? "#E24B4A"
+                        : "#555e7a",
+            }} />
+          )}
+          {/* Folder button — only on FSA-capable browsers */}
+          {fsaSupported && (
+            <button onClick={handlePickFolder} style={{ fontSize: 13, padding: "7px 16px", cursor: "pointer" }}>
+              {dirHandle ? "⌂ Change folder" : "⌂ Connect database folder"}
+            </button>
+          )}
           {view === "editor" && <button onClick={() => { setEditing(null); setView("library"); }} style={{ fontSize: 13, padding: "7px 16px", cursor: "pointer" }}>← Back</button>}
           {view === "library" && <button onClick={() => { setEditing(defaultNewEquipment()); setView("editor"); }} style={{ fontSize: 13, padding: "7px 16px", cursor: "pointer", background: "var(--color-background-info)", color: "var(--color-text-info)", border: "0.5px solid var(--color-border-info)", borderRadius: 6, fontWeight: 500 }}>+ New block</button>}
         </div>
