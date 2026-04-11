@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { SAMPLE_LIBRARY } from "../src/components/Sidebar.jsx";
 import { fsaSupported, loadHandle, saveHandle, verifyPermission, pickDirectory,
-         readAllBlocks, saveBlock, deleteBlock } from "../src/db.js";
+         readAllBlocks, saveBlock, deleteBlock, fetchFromUrl } from "../src/db.js";
 
 // ── CSS variables ─────────────────────────────────────────────────────────────
 const _style = document.createElement("style");
@@ -624,21 +624,33 @@ export default function LibraryApp() {
   const [dirHandle,     setDirHandle]     = useState(null);
   const [dbStatus,      setDbStatus]      = useState("disconnected"); // "disconnected"|"connected"|"syncing"|"saving"|"error"
 
-  // On mount: restore persisted directory handle
+  // On mount: restore persisted directory handle, or fetch from GitHub
   useEffect(() => {
     (async () => {
-      if (!fsaSupported) return;
-      const h = await loadHandle().catch(() => null);
-      if (!h) return;
-      const ok = await verifyPermission(h).catch(() => false);
-      if (!ok) return;
-      setDirHandle(h);
-      setDbStatus("syncing");
+      // Try FSA first (Chrome/Edge with a previously connected folder)
+      if (fsaSupported) {
+        const h = await loadHandle().catch(() => null);
+        if (h) {
+          const ok = await verifyPermission(h).catch(() => false);
+          if (ok) {
+            setDirHandle(h);
+            setDbStatus("syncing");
+            try {
+              const data = await readAllBlocks(h);
+              if (data.length > 0) { setLibrary(data); setDbStatus("connected"); return; }
+            } catch (e) { console.error(e); }
+            setDbStatus("connected");
+            return;
+          }
+        }
+      }
+      // Fallback: fetch from GitHub raw URL (same source the canvas uses)
       try {
-        const data = await readAllBlocks(h);
+        setDbStatus("syncing");
+        const data = await fetchFromUrl();
         if (data.length > 0) setLibrary(data);
-        setDbStatus("connected");
-      } catch (e) { console.error(e); setDbStatus("error"); }
+        setDbStatus("disconnected");
+      } catch (e) { console.error(e); setDbStatus("disconnected"); }
     })();
   }, []);
 
@@ -734,23 +746,7 @@ export default function LibraryApp() {
             </span>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-          {/* Status dot */}
-          {fsaSupported && (
-            <div title={dbStatus} style={{
-              width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
-              background: dbStatus === "connected" ? "#1D9E75"
-                        : dbStatus === "syncing" || dbStatus === "saving" ? "#EF9F27"
-                        : dbStatus === "error"   ? "#E24B4A"
-                        : "#555e7a",
-            }} />
-          )}
-          {/* Folder button — only on FSA-capable browsers */}
-          {fsaSupported && (
-            <button onClick={handlePickFolder} style={{ fontSize: 13, padding: "7px 16px", cursor: "pointer" }}>
-              {dirHandle ? "⌂ Change folder" : "⌂ Connect database folder"}
-            </button>
-          )}
+        <div style={{ display: "flex", gap: 8 }}>
           {view === "editor" && <button onClick={() => { setEditing(null); setView("library"); }} style={{ fontSize: 13, padding: "7px 16px", cursor: "pointer" }}>← Back</button>}
           {view === "library" && <button onClick={() => { setEditing(defaultNewEquipment()); setView("editor"); }} style={{ fontSize: 13, padding: "7px 16px", cursor: "pointer", background: "var(--color-background-info)", color: "var(--color-text-info)", border: "0.5px solid var(--color-border-info)", borderRadius: 6, fontWeight: 500 }}>+ New block</button>}
         </div>
