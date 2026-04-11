@@ -1,0 +1,2754 @@
+[
+  {
+    "id": "eq-abb8ce73",
+    "manufacturer": "LOGITECH",
+    "model": "TAP POWER SUPPLY",
+    "category": "Power Supply",
+    "systemName": "PSU",
+    "location": "COMM1",
+    "notes": "Logitech Tap Power Supply",
+    "width": 3.583,
+    "height": 1.429,
+    "depth": 2.37,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "POE"
+      },
+      {
+        "id": "g2",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "IEC",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g3",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Output",
+        "side": "right",
+        "description": "LAN"
+      }
+    ]
+  },
+  {
+    "id": "eq-1a1b0157",
+    "manufacturer": "LOGITECH",
+    "model": "TAP DONGLE",
+    "category": "Dongle",
+    "systemName": "DONGLE",
+    "location": "COMM1",
+    "notes": "No comments",
+    "width": 1.22,
+    "height": 0.886,
+    "depth": 3.295,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "LAN"
+      },
+      {
+        "id": "g2",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-A",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB"
+      }
+    ]
+  },
+  {
+    "id": "eq-e85b4a03",
+    "manufacturer": "LOGITECH",
+    "model": "VIDEO BAR WALL MOUNT",
+    "category": "Camera Mount",
+    "systemName": "CAMM",
+    "location": "COMM1",
+    "notes": "Wall Mount for Video bars 952-000041",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": []
+  },
+  {
+    "id": "eq-59050d64",
+    "manufacturer": "LOGITECH",
+    "model": "MINI PC MOUNT",
+    "category": "PC Mount",
+    "systemName": "PCM",
+    "location": "COMM1",
+    "notes": "MINI PC MOUNT",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": []
+  },
+  {
+    "id": "eq-853228d7",
+    "manufacturer": "LOGITECH",
+    "model": "SWYTH HUB",
+    "category": "AV Equipment",
+    "systemName": "SYHB",
+    "location": "COMM1",
+    "notes": "Swytch Hub",
+    "width": 6.457,
+    "height": 1.079,
+    "depth": 3.543,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "HDMI",
+        "qty": 1,
+        "connector": "HDMI",
+        "direction": "Input",
+        "side": "left",
+        "description": "HDMI"
+      },
+      {
+        "id": "g2",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-C"
+      },
+      {
+        "id": "g3",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-C EXT"
+      },
+      {
+        "id": "g4",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-A",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-A"
+      },
+      {
+        "id": "g5",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "DC JACK",
+        "direction": "Input",
+        "side": "left",
+        "description": "DC IN"
+      },
+      {
+        "id": "g6",
+        "signal": "HDMI",
+        "qty": 1,
+        "connector": "HDMI",
+        "direction": "Output",
+        "side": "right",
+        "description": "HDMI"
+      }
+    ]
+  },
+  {
+    "id": "eq-99744ca1",
+    "manufacturer": "LOGITECH",
+    "model": "HUB POWER SUPPLY",
+    "category": "AV Equipment",
+    "systemName": "HUPS",
+    "location": "COMM1",
+    "notes": "SWYTCH EXTENDER",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "IEC",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g2",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "DC JACK",
+        "direction": "Output",
+        "side": "right",
+        "description": "DC OUT"
+      }
+    ]
+  },
+  {
+    "id": "eq-ddc2fb6a",
+    "manufacturer": "LOGITECH",
+    "model": "SW EXTENDER PSU",
+    "category": "AV Equipment",
+    "systemName": "SEPS",
+    "location": "COMM1",
+    "notes": "SWYTCH EXTENDER",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "IEC",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g2",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "DC JACK",
+        "direction": "Output",
+        "side": "right",
+        "description": "DC JACK"
+      }
+    ]
+  },
+  {
+    "id": "eq-73af77ef",
+    "manufacturer": "LOGITECH",
+    "model": "RALLY BAR PSU",
+    "category": "AV Equipment",
+    "systemName": "BRPS",
+    "location": "COMM1",
+    "notes": "RALLY BAR PSU",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "IEC",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g2",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "DC JACK",
+        "direction": "Output",
+        "side": "right",
+        "description": "DC JACK"
+      }
+    ]
+  },
+  {
+    "id": "eq-28062fe5",
+    "manufacturer": "LOGITECH",
+    "model": "MEETUP CAM PSU",
+    "category": "Power Supply",
+    "systemName": "PSU",
+    "location": "COMM1",
+    "notes": "POWER SUPPLY",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "IEC",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g2",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "JACK",
+        "direction": "Output",
+        "side": "right",
+        "description": "DC OUT"
+      }
+    ]
+  },
+  {
+    "id": "eq-2765e727",
+    "manufacturer": "LOGITECH",
+    "model": "TV Mount XL",
+    "category": "Camera Mount",
+    "systemName": "CAMM",
+    "location": "COMM1",
+    "notes": "Camera Mount-MEET UP",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": []
+  },
+  {
+    "id": "eq-16649984",
+    "manufacturer": "LOGITECH",
+    "model": "MIC POD MOUNT",
+    "category": "Microphone",
+    "systemName": "MIC",
+    "location": "COMM1",
+    "notes": "Anchors Rally Mic Pod to a table or ceiling, with cable management for a clean installation.",
+    "width": 5.748,
+    "height": 0.866,
+    "depth": 5.748,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": []
+  },
+  {
+    "id": "eq-7b050825",
+    "manufacturer": "LOGITECH",
+    "model": "RALLY CAM MOUNT",
+    "category": "AV Equipment",
+    "systemName": "CWMT",
+    "location": "COMM1",
+    "notes": "RALLY CAMERA WALL MOUNT",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": []
+  },
+  {
+    "id": "eq-c27f4502",
+    "manufacturer": "LOGITECH",
+    "model": "RALLY CAM PSU",
+    "category": "Power Supply",
+    "systemName": "PSU",
+    "location": "COMM1",
+    "notes": "RALLY CAMERA POWER ADAPTER",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "NEMA",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER IN"
+      },
+      {
+        "id": "g2",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "DC JACK",
+        "direction": "Output",
+        "side": "right",
+        "description": "DC OUT"
+      }
+    ]
+  },
+  {
+    "id": "eq-8e13c517",
+    "manufacturer": "LOGITECH",
+    "model": "MEETUP EXPANSION MIC",
+    "category": "Microphone",
+    "systemName": "MIC",
+    "location": "COMM1",
+    "notes": "EXPANSION MIC FOR MEETUP",
+    "width": 3.268,
+    "height": 0.528,
+    "depth": 3.268,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "PROP",
+        "direction": "Output",
+        "side": "right",
+        "description": "OUT"
+      }
+    ]
+  },
+  {
+    "id": "eq-9bc5176a",
+    "manufacturer": "LOGITECH",
+    "model": "MEETUP CAM",
+    "category": "Camera",
+    "systemName": "CAM",
+    "location": "COMM1",
+    "notes": "All-In-One Conference System",
+    "width": 15.748,
+    "height": 4.094,
+    "depth": 3.346,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-C"
+      },
+      {
+        "id": "g2",
+        "signal": "Dante",
+        "qty": 1,
+        "connector": "PROP",
+        "direction": "Input",
+        "side": "left",
+        "description": "MIC"
+      },
+      {
+        "id": "g3",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "JACK",
+        "direction": "Input",
+        "side": "left",
+        "description": "DC IN"
+      }
+    ]
+  },
+  {
+    "id": "eq-913513bf",
+    "manufacturer": "LOGITECH",
+    "model": "TV MOUNT FOR VIDEO BAR",
+    "category": "AV Equipment",
+    "systemName": "VBM",
+    "location": "COMM1",
+    "notes": "TV MOUNT FOR VIDEO BAR",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": []
+  },
+  {
+    "id": "eq-df1ab4fb",
+    "manufacturer": "LOGITECH",
+    "model": "Logitech Meetup 2",
+    "category": "Camera",
+    "systemName": "CAM",
+    "location": "COMM1",
+    "notes": "No comments",
+    "width": 18.472,
+    "height": 2.886,
+    "depth": 2.874,
+    "unit": "in",
+    "wattage": 40.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "HDMI",
+        "qty": 1,
+        "connector": "HDMI",
+        "direction": "Input",
+        "side": "left",
+        "description": "HDMI"
+      },
+      {
+        "id": "g2",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-C"
+      },
+      {
+        "id": "g3",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "LAN"
+      },
+      {
+        "id": "g4",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "DC in",
+        "direction": "Input",
+        "side": "left",
+        "description": "Power"
+      },
+      {
+        "id": "g5",
+        "signal": "HDMI",
+        "qty": 1,
+        "connector": "HDMI",
+        "direction": "Output",
+        "side": "right",
+        "description": "HDMI"
+      }
+    ]
+  },
+  {
+    "id": "eq-2d8b8a07",
+    "manufacturer": "LOGITECH",
+    "model": "SWYTCH EXTENDER",
+    "category": "AV Equipment",
+    "systemName": "SWEX",
+    "location": "COMM1",
+    "notes": "SWYTCH EXTENDER",
+    "width": 4.724,
+    "height": 1.079,
+    "depth": 4.724,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-C"
+      },
+      {
+        "id": "g2",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "M-USB",
+        "direction": "Input",
+        "side": "left",
+        "description": "M-USB"
+      },
+      {
+        "id": "g3",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "DC JACK",
+        "direction": "Input",
+        "side": "left",
+        "description": "DC IN"
+      },
+      {
+        "id": "g4",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-A",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB-A"
+      }
+    ]
+  },
+  {
+    "id": "eq-2abbdf3d",
+    "manufacturer": "LOGITECH",
+    "model": "993-001903",
+    "category": "AV Equipment",
+    "systemName": "POE",
+    "location": "COMM1",
+    "notes": "Logitech PoE Splitter Power Over Ethernet Network Device, Black, Provides Efficient Power Delivery for IP Cameras and VoIP Phones - 993-001903",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 24.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-C"
+      },
+      {
+        "id": "g2",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "4mm",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g3",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB C",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB C"
+      }
+    ]
+  },
+  {
+    "id": "eq-db37e92b",
+    "manufacturer": "LOGITECH",
+    "model": "EXTEND TX",
+    "category": "Transmitter",
+    "systemName": "EXTx",
+    "location": "COMM1",
+    "notes": "Logitech Extend - Table Side Tx Box - Bring your own meeting to the video conferencing room via a single USB-C cable",
+    "width": 5.63,
+    "height": 1.358,
+    "depth": 5.63,
+    "unit": "in",
+    "wattage": 24.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-C PC"
+      },
+      {
+        "id": "g2",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-C"
+      },
+      {
+        "id": "g3",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Output",
+        "side": "right",
+        "description": "TO Rx"
+      }
+    ]
+  },
+  {
+    "id": "eq-4fc6384b",
+    "manufacturer": "LOGITECH",
+    "model": "EXTEND RX",
+    "category": "Receiver",
+    "systemName": "EXRx",
+    "location": "COMM1",
+    "notes": "Logitech Extend - Display Side Rx Box - Bring your own meeting to the video conferencing room via a single USB-C cable",
+    "width": 5.63,
+    "height": 1.358,
+    "depth": 5.63,
+    "unit": "in",
+    "wattage": 24.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "FROM Rx"
+      },
+      {
+        "id": "g2",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "3.5mm",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g3",
+        "signal": "USB",
+        "qty": 0,
+        "connector": "",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB"
+      },
+      {
+        "id": "g4",
+        "signal": "HDMI",
+        "qty": 1,
+        "connector": "HDMI",
+        "direction": "Output",
+        "side": "right",
+        "description": "HDMI 2.0"
+      },
+      {
+        "id": "g5",
+        "signal": "USB",
+        "qty": 2,
+        "connector": "USB-A",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB-A 2.0"
+      },
+      {
+        "id": "g6",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB",
+        "direction": "Output",
+        "side": "right",
+        "description": "MICRO USB"
+      }
+    ]
+  },
+  {
+    "id": "eq-9236438f",
+    "manufacturer": "LOGITECH",
+    "model": "RALLY BAR HUDDLE",
+    "category": "Camera",
+    "systemName": "CAMERA",
+    "location": "COMM1",
+    "notes": "All-in-one video bar for huddle and small rooms",
+    "width": 21.638,
+    "height": 3.106,
+    "depth": 2.992,
+    "unit": "in",
+    "wattage": 39.9,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "HDMI",
+        "qty": 1,
+        "connector": "HDMI",
+        "direction": "Input",
+        "side": "left",
+        "description": "HDMI IN"
+      },
+      {
+        "id": "g2",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "LAN"
+      },
+      {
+        "id": "g3",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "DC",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g4",
+        "signal": "HDMI",
+        "qty": 1,
+        "connector": "HDMI",
+        "direction": "Output",
+        "side": "right",
+        "description": "HDMI OUT"
+      },
+      {
+        "id": "g5",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB"
+      },
+      {
+        "id": "g6",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-A",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB"
+      }
+    ]
+  },
+  {
+    "id": "eq-dc279058",
+    "manufacturer": "LOGITECH",
+    "model": "RALLY SPEAKER",
+    "category": "Speaker",
+    "systemName": "SPK",
+    "location": "COMM1",
+    "notes": "No comments",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Audio",
+        "qty": 1,
+        "connector": "3 PIN",
+        "direction": "Input",
+        "side": "left",
+        "description": "MINI XLR"
+      }
+    ]
+  },
+  {
+    "id": "eq-2d310beb",
+    "manufacturer": "LOGITECH",
+    "model": "ROOMMATE",
+    "category": "PC",
+    "systemName": "PC",
+    "location": "COMM1",
+    "notes": "LOGITECH ROOM MATE",
+    "width": 6.339,
+    "height": 1.358,
+    "depth": 8.307,
+    "unit": "in",
+    "wattage": 900.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "HDMI",
+        "qty": 1,
+        "connector": "HDMI",
+        "direction": "Input",
+        "side": "left",
+        "description": "HDMI IN"
+      },
+      {
+        "id": "g2",
+        "signal": "USB",
+        "qty": 3,
+        "connector": "USB-A",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-A"
+      },
+      {
+        "id": "g3",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "LAN"
+      },
+      {
+        "id": "g4",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "DC",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g5",
+        "signal": "HDMI",
+        "qty": 2,
+        "connector": "HDMI",
+        "direction": "Output",
+        "side": "right",
+        "description": "HDMI OUT"
+      }
+    ]
+  },
+  {
+    "id": "eq-ab40fd85",
+    "manufacturer": "LOGITECH",
+    "model": "Roommate",
+    "category": "PC",
+    "systemName": "PC",
+    "location": "COMM1",
+    "notes": "No comments",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "HDMI",
+        "qty": 1,
+        "connector": "HDMI",
+        "direction": "Input",
+        "side": "left",
+        "description": "HDMI IN"
+      },
+      {
+        "id": "g2",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "ETHERNET"
+      },
+      {
+        "id": "g3",
+        "signal": "USB",
+        "qty": 3,
+        "connector": "USB-A",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-A 2.0"
+      },
+      {
+        "id": "g4",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "3.5MM",
+        "direction": "Input",
+        "side": "left",
+        "description": "JACK"
+      },
+      {
+        "id": "g5",
+        "signal": "HDMI",
+        "qty": 2,
+        "connector": "HDMI",
+        "direction": "Output",
+        "side": "right",
+        "description": "HDMI OUT"
+      }
+    ]
+  },
+  {
+    "id": "eq-b45c33ac",
+    "manufacturer": "LOGITECH",
+    "model": "R400",
+    "category": "AV Equipment",
+    "systemName": "PRESRM",
+    "location": "COMM1",
+    "notes": "No comments",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-A",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB"
+      }
+    ]
+  },
+  {
+    "id": "eq-0c2128e7",
+    "manufacturer": "LOGITECH",
+    "model": "PTZ PRO 2 PS",
+    "category": "AV Equipment",
+    "systemName": "PRO2PS.01",
+    "location": "COMM1",
+    "notes": "PTZ PRO 2 POWER SUPPLY",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "NEMA",
+        "direction": "Input",
+        "side": "left",
+        "description": "NEMA 1-15P"
+      },
+      {
+        "id": "g2",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "JCAK",
+        "direction": "Output",
+        "side": "right",
+        "description": "POWER"
+      }
+    ]
+  },
+  {
+    "id": "eq-8f8a42a2",
+    "manufacturer": "LOGITECH",
+    "model": "SWYTCH HUB",
+    "category": "Switcher",
+    "systemName": "SWH.01",
+    "location": "COMM1",
+    "notes": "SWYTCH HUB",
+    "width": 6.5,
+    "height": 1.1,
+    "depth": 3.5,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Input",
+        "side": "left",
+        "description": "EXTENDER"
+      },
+      {
+        "id": "g2",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "USB-A",
+        "direction": "Input",
+        "side": "left",
+        "description": "A/V"
+      },
+      {
+        "id": "g3",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "JACK",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g4",
+        "signal": "HDMI",
+        "qty": 1,
+        "connector": "HDMI",
+        "direction": "Output",
+        "side": "right",
+        "description": "TV-HDMI"
+      },
+      {
+        "id": "g5",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Output",
+        "side": "right",
+        "description": "PC-USB"
+      },
+      {
+        "id": "g6",
+        "signal": "HDMI",
+        "qty": 1,
+        "connector": "HDMI",
+        "direction": "Output",
+        "side": "right",
+        "description": "PC-HDMI"
+      }
+    ]
+  },
+  {
+    "id": "eq-bec7fe71",
+    "manufacturer": "LOGITECH",
+    "model": "MEET UP CAMERA",
+    "category": "Camera",
+    "systemName": "CAM.01",
+    "location": "COMM1",
+    "notes": "No comments",
+    "width": 3.2,
+    "height": 3.2,
+    "depth": 0.4,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Audio",
+        "qty": 1,
+        "connector": "USB",
+        "direction": "Input",
+        "side": "left",
+        "description": "MIC"
+      },
+      {
+        "id": "g2",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "USB",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB"
+      },
+      {
+        "id": "g3",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "JACK",
+        "direction": "Output",
+        "side": "right",
+        "description": "PWR"
+      }
+    ]
+  },
+  {
+    "id": "eq-9678d093",
+    "manufacturer": "LOGITECH",
+    "model": "RALLY DISPLAY BOX",
+    "category": "AV Equipment",
+    "systemName": "DB.01",
+    "location": "COMM1",
+    "notes": "Rally Kit DISPLAY HUB",
+    "width": 8.1,
+    "height": 1.6,
+    "depth": 7.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "TO T-HUB"
+      },
+      {
+        "id": "g2",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "USB",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB"
+      },
+      {
+        "id": "g3",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "LUG",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g4",
+        "signal": "HDMI",
+        "qty": 2,
+        "connector": "HDMI",
+        "direction": "Output",
+        "side": "right",
+        "description": "HDMI"
+      },
+      {
+        "id": "g5",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "USB",
+        "direction": "Output",
+        "side": "right",
+        "description": "CAMERA"
+      },
+      {
+        "id": "g6",
+        "signal": "Audio",
+        "qty": 2,
+        "connector": "JACK",
+        "direction": "Output",
+        "side": "right",
+        "description": "SPEAKER"
+      }
+    ]
+  },
+  {
+    "id": "eq-1741c93a",
+    "manufacturer": "LOGITECH",
+    "model": "RALLY MOUNTING KIT",
+    "category": "AV Equipment",
+    "systemName": "CAM MOUNT.01",
+    "location": "COMM1",
+    "notes": "Custom mounts for a sleek installation and secure cabling",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": []
+  },
+  {
+    "id": "eq-791338b3",
+    "manufacturer": "LOGITECH",
+    "model": "RALLY POWER SUPPLY",
+    "category": "AV Equipment",
+    "systemName": "PS.01",
+    "location": "COMM1",
+    "notes": "RALLY POWER SUPPLY",
+    "width": 3.6,
+    "height": 1.4,
+    "depth": 2.4,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-C"
+      },
+      {
+        "id": "g2",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "DC JACK",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g3",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB-C"
+      }
+    ]
+  },
+  {
+    "id": "eq-75051ddb",
+    "manufacturer": "LOGITECH",
+    "model": "RALLY PC",
+    "category": "PC",
+    "systemName": "PC",
+    "location": "COMM1",
+    "notes": "RALLY PC",
+    "width": 8.0,
+    "height": 1.7,
+    "depth": 8.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Data",
+        "qty": 3,
+        "connector": "USB-A",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB"
+      },
+      {
+        "id": "g2",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "LAN"
+      },
+      {
+        "id": "g3",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "JACK",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER IN"
+      },
+      {
+        "id": "g4",
+        "signal": "HDMI",
+        "qty": 2,
+        "connector": "HDMI",
+        "direction": "Output",
+        "side": "right",
+        "description": "HDMI"
+      },
+      {
+        "id": "g5",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "USB-A",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB"
+      }
+    ]
+  },
+  {
+    "id": "eq-cbebccd4",
+    "manufacturer": "LOGITECH",
+    "model": "Rally Kit Plus CAMERA",
+    "category": "Camera",
+    "systemName": "CAM.01",
+    "location": "COMM1",
+    "notes": "Rally Kit Plus CAMERA",
+    "width": 6.0,
+    "height": 7.2,
+    "depth": 6.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "USB",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB"
+      },
+      {
+        "id": "g2",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "JACK",
+        "direction": "Output",
+        "side": "right",
+        "description": "PWR"
+      }
+    ]
+  },
+  {
+    "id": "eq-278de6b8",
+    "manufacturer": "LOGITECH",
+    "model": "Rally Kit Plus DISPLAY HUB",
+    "category": "AV Equipment",
+    "systemName": "DH.01",
+    "location": "COMM1",
+    "notes": "Rally Kit Plus DISPLAY HUB",
+    "width": 8.1,
+    "height": 1.6,
+    "depth": 7.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "TO T-HUB"
+      },
+      {
+        "id": "g2",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "USB-B",
+        "direction": "Input",
+        "side": "left",
+        "description": "COMPUTER"
+      },
+      {
+        "id": "g3",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "LUG",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g4",
+        "signal": "HDMI",
+        "qty": 2,
+        "connector": "HDMI",
+        "direction": "Output",
+        "side": "right",
+        "description": "HDMI"
+      },
+      {
+        "id": "g5",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Output",
+        "side": "right",
+        "description": "CAMERA"
+      },
+      {
+        "id": "g6",
+        "signal": "Audio",
+        "qty": 2,
+        "connector": "JACK",
+        "direction": "Output",
+        "side": "right",
+        "description": "SPEAKER"
+      }
+    ]
+  },
+  {
+    "id": "eq-aa88d5a1",
+    "manufacturer": "LOGITECH",
+    "model": "Rally Kit Plus SPEAKER",
+    "category": "AV Equipment",
+    "systemName": "SP.01",
+    "location": "COMM1",
+    "notes": "Rally Kit Plus SPEAKER",
+    "width": 17.7,
+    "height": 4.0,
+    "depth": 3.1,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Audio",
+        "qty": 1,
+        "connector": "JACK",
+        "direction": "Input",
+        "side": "left",
+        "description": "SPEAKER"
+      }
+    ]
+  },
+  {
+    "id": "eq-eef82e1a",
+    "manufacturer": "LOGITECH",
+    "model": "Rally Kit Plus TABLE HUB",
+    "category": "AV Equipment",
+    "systemName": "TH.01",
+    "location": "COMM1",
+    "notes": "Rally Kit Plus TABLE HUB",
+    "width": 6.9,
+    "height": 1.6,
+    "depth": 5.4,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "HDMI",
+        "qty": 2,
+        "connector": "HDMI",
+        "direction": "Input",
+        "side": "left",
+        "description": "HDMI"
+      },
+      {
+        "id": "g2",
+        "signal": "Audio",
+        "qty": 1,
+        "connector": "M USB",
+        "direction": "Input",
+        "side": "left",
+        "description": "MIC POD"
+      },
+      {
+        "id": "g3",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "USB",
+        "direction": "Input",
+        "side": "left",
+        "description": "COMPUTER"
+      },
+      {
+        "id": "g4",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "LUG",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g5",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Output",
+        "side": "right",
+        "description": "TO D-HUB"
+      }
+    ]
+  },
+  {
+    "id": "eq-cc972cbe",
+    "manufacturer": "LOGITECH",
+    "model": "Z130 Stereo Speakers",
+    "category": "Speaker",
+    "systemName": "STEREO-SPK.01",
+    "location": "COMM1",
+    "notes": "Z130 Stereo Speakers",
+    "width": 6.0,
+    "height": 7.2,
+    "depth": 6.0,
+    "unit": "in",
+    "wattage": 5.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "JACK",
+        "direction": "Input",
+        "side": "left",
+        "description": "DC IN 10V"
+      },
+      {
+        "id": "g2",
+        "signal": "Audio",
+        "qty": 1,
+        "connector": "3.5mm",
+        "direction": "Output",
+        "side": "right",
+        "description": "INPUT"
+      },
+      {
+        "id": "g3",
+        "signal": "Audio",
+        "qty": 1,
+        "connector": "JACK",
+        "direction": "Output",
+        "side": "right",
+        "description": "HEADPHONE"
+      }
+    ]
+  },
+  {
+    "id": "eq-c65506ed",
+    "manufacturer": "LOGITECH",
+    "model": "PTZ PRO 2",
+    "category": "Camera",
+    "systemName": "CAM",
+    "location": "COMM1",
+    "notes": "PTZ PRO 2 WITH POWER & USB Y CABLE",
+    "width": 5.2,
+    "height": 5.7,
+    "depth": 4.7,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-A",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB"
+      },
+      {
+        "id": "g2",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "JACK",
+        "direction": "Output",
+        "side": "right",
+        "description": "POWER IN"
+      }
+    ]
+  },
+  {
+    "id": "eq-d95604c6",
+    "manufacturer": "LOGITECH",
+    "model": "RALLY CAMERA",
+    "category": "Camera",
+    "systemName": "CAM",
+    "location": "COMM1",
+    "notes": "RALLY CAMERA",
+    "width": 5.984,
+    "height": 7.185,
+    "depth": 5.984,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB-C"
+      }
+    ]
+  },
+  {
+    "id": "eq-ecda9e87",
+    "manufacturer": "LOGITECH",
+    "model": "RALLY CAM P-SPLITTER",
+    "category": "Splitter",
+    "systemName": "SPL",
+    "location": "COMM1",
+    "notes": "Rally Camera Power Splitter",
+    "width": 3.189,
+    "height": 0.843,
+    "depth": 2.382,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "UBS-C",
+        "direction": "Input",
+        "side": "left",
+        "description": "PIGTAIL"
+      },
+      {
+        "id": "g2",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "UBS-C",
+        "direction": "Output",
+        "side": "right",
+        "description": "UBS-C"
+      },
+      {
+        "id": "g3",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "DC JACK",
+        "direction": "Output",
+        "side": "right",
+        "description": "DC IN"
+      }
+    ]
+  },
+  {
+    "id": "eq-5bdd1373",
+    "manufacturer": "LOGITECH",
+    "model": "CAT5E EXTENDER",
+    "category": "AV Equipment",
+    "systemName": "EXT",
+    "location": "COMM1",
+    "notes": "Extend USB signal over Cat5e",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 15.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "IN"
+      },
+      {
+        "id": "g2",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "DC",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g3",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Output",
+        "side": "right",
+        "description": "OUT"
+      }
+    ]
+  },
+  {
+    "id": "eq-8392a392",
+    "manufacturer": "LOGITECH",
+    "model": "TAP SCHEDULER",
+    "category": "Touch Panel",
+    "systemName": "TP",
+    "location": "COMM1",
+    "notes": "10.1\" SCHEDULING PANEL",
+    "width": 9.6,
+    "height": 6.5,
+    "depth": 1.24,
+    "unit": "in",
+    "wattage": 15.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Output",
+        "side": "right",
+        "description": "LAN/PoE"
+      }
+    ]
+  },
+  {
+    "id": "eq-6cadbd56",
+    "manufacturer": "LOGITECH",
+    "model": "MIC POD CAT COUPLER",
+    "category": "AV Equipment",
+    "systemName": "AFC",
+    "location": "COMM1",
+    "notes": "MIC POD CAT COUPLER",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Dante",
+        "qty": 1,
+        "connector": "PROP",
+        "direction": "Input",
+        "side": "left",
+        "description": "PROP"
+      },
+      {
+        "id": "g2",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Output",
+        "side": "right",
+        "description": "RJ45"
+      }
+    ]
+  },
+  {
+    "id": "eq-0c5965e9",
+    "manufacturer": "LOGITECH",
+    "model": "MIC POD HUB",
+    "category": "AV Equipment",
+    "systemName": "TMH",
+    "location": "COMM1",
+    "notes": "MIC POD HUB",
+    "width": 4.0,
+    "height": 0.6,
+    "depth": 4.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Dante",
+        "qty": 3,
+        "connector": "PROP",
+        "direction": "Input",
+        "side": "left",
+        "description": "LINE-IN"
+      },
+      {
+        "id": "g2",
+        "signal": "Dante",
+        "qty": 1,
+        "connector": "PROP",
+        "direction": "Output",
+        "side": "right",
+        "description": "LINE-OUT"
+      }
+    ]
+  },
+  {
+    "id": "eq-bda4a971",
+    "manufacturer": "LOGITECH",
+    "model": "TAP RECEIVER",
+    "category": "Receiver",
+    "systemName": "RX",
+    "location": "COMM1",
+    "notes": "Logitech Tap receiver for Logitech Tap. (onboard module)",
+    "width": 9.6,
+    "height": 2.3,
+    "depth": 7.0,
+    "unit": "in",
+    "wattage": 24.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB 3.1"
+      },
+      {
+        "id": "g2",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Output",
+        "side": "right",
+        "description": "LAN"
+      }
+    ]
+  },
+  {
+    "id": "eq-990673f6",
+    "manufacturer": "LOGITECH",
+    "model": "TAP IP",
+    "category": "Touch Panel",
+    "systemName": "TP",
+    "location": "COMM1",
+    "notes": "Meeting Room Touch controller 952-000088",
+    "width": 9.693,
+    "height": 2.209,
+    "depth": 6.744,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Output",
+        "side": "right",
+        "description": "LAN/PoE"
+      }
+    ]
+  },
+  {
+    "id": "eq-8be4faca",
+    "manufacturer": "LOGITECH",
+    "model": "RALLY MIC POD",
+    "category": "Microphone",
+    "systemName": "TMIC",
+    "location": "COMM1",
+    "notes": "Modular microphone with RightSound for Rally Bar Mini, Rally Bar, and Rally.",
+    "width": 0.827,
+    "height": 4.016,
+    "depth": 4.016,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Dante",
+        "qty": 1,
+        "connector": "PROP",
+        "direction": "Input",
+        "side": "left",
+        "description": "LINE-IN"
+      },
+      {
+        "id": "g2",
+        "signal": "Dante",
+        "qty": 1,
+        "connector": "PROP",
+        "direction": "Output",
+        "side": "right",
+        "description": "LINE-OUT"
+      }
+    ]
+  },
+  {
+    "id": "eq-beb57e44",
+    "manufacturer": "LOGITECH",
+    "model": "Streamline Kit-Control Box",
+    "category": "AV Equipment",
+    "systemName": "CTRLBOX",
+    "location": "COMM1",
+    "notes": "RALLY CAMERA CONTROL SIDE BOX",
+    "width": 4.614,
+    "height": 0.898,
+    "depth": 5.303,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "LAN"
+      },
+      {
+        "id": "g2",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "DC JACK",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      }
+    ]
+  },
+  {
+    "id": "eq-b2d0536f",
+    "manufacturer": "LOGITECH",
+    "model": "Rally Streamline Kit-Base",
+    "category": "Camera",
+    "systemName": "CAMBASE",
+    "location": "COMM1",
+    "notes": "RALLY CAMERA SIDE BASE",
+    "width": 6.035,
+    "height": 1.24,
+    "depth": 6.035,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-C"
+      },
+      {
+        "id": "g2",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Output",
+        "side": "right",
+        "description": "LAN"
+      }
+    ]
+  },
+  {
+    "id": "eq-6487a421",
+    "manufacturer": "LOGITECH",
+    "model": "Rally Streamline Kit-Control Box",
+    "category": "AV Equipment",
+    "systemName": "CTRLBOX",
+    "location": "COMM1",
+    "notes": "RALLY CAMERA CONTROL SIDE BOX",
+    "width": 4.614,
+    "height": 0.898,
+    "depth": 5.303,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "LAN"
+      },
+      {
+        "id": "g2",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "DC JACK",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g3",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB"
+      }
+    ]
+  },
+  {
+    "id": "eq-a893020b",
+    "manufacturer": "LOGITECH",
+    "model": "SIGHT",
+    "category": "Camera",
+    "systemName": "TCAM",
+    "location": "COMM1",
+    "notes": "No comments",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "MIC POD IN"
+      },
+      {
+        "id": "g2",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "LAN/POE"
+      },
+      {
+        "id": "g3",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Output",
+        "side": "right",
+        "description": "TO DONGLE"
+      }
+    ]
+  },
+  {
+    "id": "eq-7a892f9a",
+    "manufacturer": "LOGITECH",
+    "model": "SIGHT MIC POD DONGLE",
+    "category": "Dongle",
+    "systemName": "DONG",
+    "location": "COMM1",
+    "notes": "No comments",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "PROP",
+        "direction": "Input",
+        "side": "left",
+        "description": "MIC POD IN"
+      },
+      {
+        "id": "g2",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Output",
+        "side": "right",
+        "description": "TO SIGHT"
+      }
+    ]
+  },
+  {
+    "id": "eq-3b4292ff",
+    "manufacturer": "LOGITECH",
+    "model": "SIGHT DONGLE",
+    "category": "Dongle",
+    "systemName": "DONG",
+    "location": "COMM1",
+    "notes": "No comments",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "LAN IN"
+      },
+      {
+        "id": "g2",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "PROP",
+        "direction": "Output",
+        "side": "right",
+        "description": "MIC POD OUT"
+      },
+      {
+        "id": "g3",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB OUT"
+      }
+    ]
+  },
+  {
+    "id": "eq-7a1becd0",
+    "manufacturer": "LOGITECH",
+    "model": "TAP TOUCH PANEL",
+    "category": "Touch Panel",
+    "systemName": "TP",
+    "location": "COMM1",
+    "notes": "Logitech Tap meeting room touch controller for video conferencing room solutions",
+    "width": 9.6,
+    "height": 2.3,
+    "depth": 7.0,
+    "unit": "in",
+    "wattage": 24.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "HDMI",
+        "qty": 1,
+        "connector": "HDMI",
+        "direction": "Input",
+        "side": "left",
+        "description": "HDMI-IN"
+      },
+      {
+        "id": "g2",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Output",
+        "side": "right",
+        "description": "PoE/LAN"
+      },
+      {
+        "id": "g3",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-A",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB"
+      }
+    ]
+  },
+  {
+    "id": "eq-3d9dd529",
+    "manufacturer": "LOGITECH",
+    "model": "MIC POD CAT COUPLER TX",
+    "category": "Transmitter",
+    "systemName": "MPTX",
+    "location": "COMM1",
+    "notes": "MIC POD CAT COUPLER",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Dante",
+        "qty": 1,
+        "connector": "PROP",
+        "direction": "Input",
+        "side": "left",
+        "description": "PROP"
+      },
+      {
+        "id": "g2",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Output",
+        "side": "right",
+        "description": "RJ45"
+      }
+    ]
+  },
+  {
+    "id": "eq-c1ac73b9",
+    "manufacturer": "LOGITECH",
+    "model": "MIC POD CAT COUPLER RX",
+    "category": "Receiver",
+    "systemName": "MPRX",
+    "location": "COMM1",
+    "notes": "MIC POD CAT COUPLER",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "RJ45"
+      },
+      {
+        "id": "g2",
+        "signal": "Dante",
+        "qty": 1,
+        "connector": "PROP",
+        "direction": "Output",
+        "side": "right",
+        "description": "PROP"
+      }
+    ]
+  },
+  {
+    "id": "eq-d5f61b0d",
+    "manufacturer": "LOGITECH",
+    "model": "RALLY BAR MINI",
+    "category": "Camera",
+    "systemName": "CAMERA",
+    "location": "COMM1",
+    "notes": "All-in-one video bar for small to medium meeting rooms",
+    "width": 28.307,
+    "height": 3.598,
+    "depth": 3.976,
+    "unit": "in",
+    "wattage": 90.06,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "HDMI",
+        "qty": 1,
+        "connector": "HDMI",
+        "direction": "Input",
+        "side": "left",
+        "description": "HDMI IN"
+      },
+      {
+        "id": "g2",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB"
+      },
+      {
+        "id": "g3",
+        "signal": "Dante",
+        "qty": 1,
+        "connector": "PROP",
+        "direction": "Input",
+        "side": "left",
+        "description": "MIC POD"
+      },
+      {
+        "id": "g4",
+        "signal": "USB",
+        "qty": 3,
+        "connector": "USB-A",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB"
+      },
+      {
+        "id": "g5",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "DC",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g6",
+        "signal": "HDMI",
+        "qty": 2,
+        "connector": "HDMI",
+        "direction": "Output",
+        "side": "right",
+        "description": "HDMI OUT"
+      },
+      {
+        "id": "g7",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Output",
+        "side": "right",
+        "description": "LAN"
+      }
+    ]
+  },
+  {
+    "id": "eq-cd54444a",
+    "manufacturer": "LOGITECH",
+    "model": "RALLY BOARD 65",
+    "category": "Codec",
+    "systemName": "VTC",
+    "location": "COMM1",
+    "notes": "Off-White Rally Board 65",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "HDMI",
+        "qty": 1,
+        "connector": "HDMI",
+        "direction": "Input",
+        "side": "left",
+        "description": "HDMI-IN"
+      },
+      {
+        "id": "g2",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB"
+      },
+      {
+        "id": "g3",
+        "signal": "USB",
+        "qty": 3,
+        "connector": "USB-A",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB"
+      },
+      {
+        "id": "g4",
+        "signal": "Data",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "LAN"
+      },
+      {
+        "id": "g5",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "IEC",
+        "direction": "Input",
+        "side": "left",
+        "description": "PWR"
+      },
+      {
+        "id": "g6",
+        "signal": "HDMI",
+        "qty": 1,
+        "connector": "HDMI",
+        "direction": "Output",
+        "side": "right",
+        "description": "HDMI-OUT"
+      },
+      {
+        "id": "g7",
+        "signal": "Audio",
+        "qty": 1,
+        "connector": "3.5mm",
+        "direction": "Output",
+        "side": "right",
+        "description": "LINE-OUT"
+      }
+    ]
+  },
+  {
+    "id": "eq-cbe6a2b4",
+    "manufacturer": "LOGITECH",
+    "model": "RALLY BAR",
+    "category": "Camera",
+    "systemName": "CAMERA",
+    "location": "COMM1",
+    "notes": "All-in-one video bar for medium to large rooms.",
+    "width": 6.457,
+    "height": 35.827,
+    "depth": 5.138,
+    "unit": "in",
+    "wattage": 90.06,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "HDMI",
+        "qty": 1,
+        "connector": "HDMI",
+        "direction": "Input",
+        "side": "left",
+        "description": "HDMI IN"
+      },
+      {
+        "id": "g2",
+        "signal": "Dante",
+        "qty": 1,
+        "connector": "PROP",
+        "direction": "Input",
+        "side": "left",
+        "description": "MIC POD"
+      },
+      {
+        "id": "g3",
+        "signal": "USB",
+        "qty": 3,
+        "connector": "USB-A",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB"
+      },
+      {
+        "id": "g4",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "TYPE C",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB"
+      },
+      {
+        "id": "g5",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "LAN"
+      },
+      {
+        "id": "g6",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "DC",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g7",
+        "signal": "HDMI",
+        "qty": 2,
+        "connector": "HDMI",
+        "direction": "Output",
+        "side": "right",
+        "description": "HDMI OUT"
+      }
+    ]
+  },
+  {
+    "id": "eq-549f621b",
+    "manufacturer": "LOGITECH",
+    "model": "TAP TP",
+    "category": "Touch Panel",
+    "systemName": "TP",
+    "location": "COMM1",
+    "notes": "Logitech Tap meeting room touch controller for video conferencing room solutions",
+    "width": 9.6,
+    "height": 2.3,
+    "depth": 7.0,
+    "unit": "in",
+    "wattage": 24.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "HDMI",
+        "qty": 1,
+        "connector": "HDMI",
+        "direction": "Input",
+        "side": "left",
+        "description": "HDMI-IN"
+      },
+      {
+        "id": "g2",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Output",
+        "side": "right",
+        "description": "PoE/LAN"
+      },
+      {
+        "id": "g3",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-A",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB"
+      }
+    ]
+  },
+  {
+    "id": "eq-25bd7984",
+    "manufacturer": "LOGITECH",
+    "model": "DISPLAY HUB",
+    "category": "System Controller",
+    "systemName": "DS",
+    "location": "COMM1",
+    "notes": "No comments",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "TO TABLE HUB"
+      },
+      {
+        "id": "g2",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-C"
+      },
+      {
+        "id": "g3",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-B",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-B"
+      },
+      {
+        "id": "g4",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "3 PIN",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g5",
+        "signal": "HDMI",
+        "qty": 2,
+        "connector": "HDMI",
+        "direction": "Output",
+        "side": "right",
+        "description": "HDMI"
+      },
+      {
+        "id": "g6",
+        "signal": "Dante",
+        "qty": 1,
+        "connector": "3 PIN",
+        "direction": "Output",
+        "side": "right",
+        "description": "MINI XLR L"
+      },
+      {
+        "id": "g7",
+        "signal": "Dante",
+        "qty": 1,
+        "connector": "3 PIN",
+        "direction": "Output",
+        "side": "right",
+        "description": "MINI XLR R"
+      }
+    ]
+  },
+  {
+    "id": "eq-7946b151",
+    "manufacturer": "LOGITECH",
+    "model": "TABLE HUB",
+    "category": "AV Equipment",
+    "systemName": "TH",
+    "location": "COMM1",
+    "notes": "No comments",
+    "width": 0.0,
+    "height": 0.0,
+    "depth": 0.0,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "HDMI",
+        "qty": 2,
+        "connector": "HDMI",
+        "direction": "Input",
+        "side": "left",
+        "description": "HDMI IN"
+      },
+      {
+        "id": "g2",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "M USB",
+        "direction": "Input",
+        "side": "left",
+        "description": "MIC POD"
+      },
+      {
+        "id": "g3",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-A",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-A"
+      },
+      {
+        "id": "g4",
+        "signal": "Hybrid",
+        "qty": 1,
+        "connector": "USB-B",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-B"
+      },
+      {
+        "id": "g5",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "LAN"
+      },
+      {
+        "id": "g6",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "3.5MM",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g7",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Output",
+        "side": "right",
+        "description": "TO RALLY HUB"
+      },
+      {
+        "id": "g8",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB-C"
+      }
+    ]
+  },
+  {
+    "id": "eq-fdae69ec",
+    "manufacturer": "LOGITECH",
+    "model": "Rally Extension Kit-Base",
+    "category": "Camera",
+    "systemName": "CAMBASE",
+    "location": "COMM1",
+    "notes": "RALLY CAMERA EXTENSION KIT CAMERA SIDE BASE",
+    "width": 6.035,
+    "height": 1.24,
+    "depth": 6.035,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Input",
+        "side": "left",
+        "description": "USB-C"
+      },
+      {
+        "id": "g2",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Output",
+        "side": "right",
+        "description": "LAN"
+      }
+    ]
+  },
+  {
+    "id": "eq-96ccfa9c",
+    "manufacturer": "LOGITECH",
+    "model": "Rally Extension Kit-Control Box",
+    "category": "AV Equipment",
+    "systemName": "CTRLBOX",
+    "location": "COMM1",
+    "notes": "RALLY CAMERA EXTENSION KIT CONTROL SIDE BOX",
+    "width": 4.614,
+    "height": 0.898,
+    "depth": 5.303,
+    "unit": "in",
+    "wattage": 0.0,
+    "groups": [
+      {
+        "id": "g1",
+        "signal": "LAN",
+        "qty": 1,
+        "connector": "RJ45",
+        "direction": "Input",
+        "side": "left",
+        "description": "LAN"
+      },
+      {
+        "id": "g2",
+        "signal": "Power",
+        "qty": 1,
+        "connector": "DC JACK",
+        "direction": "Input",
+        "side": "left",
+        "description": "POWER"
+      },
+      {
+        "id": "g3",
+        "signal": "USB",
+        "qty": 1,
+        "connector": "USB-C",
+        "direction": "Output",
+        "side": "right",
+        "description": "USB"
+      }
+    ]
+  }
+]

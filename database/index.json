@@ -1,1 +1,8 @@
-["Samsung.json"]
+[
+  "CRESTRON.json",
+  "Cisco.json",
+  "Extron.json",
+  "LOGITECH.json",
+  "SHURE.json",
+  "Samsung.json"
+]

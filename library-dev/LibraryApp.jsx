@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { SAMPLE_LIBRARY } from "../src/components/Sidebar.jsx";
 import { fsaSupported, loadHandle, saveHandle, verifyPermission, pickDirectory,
-         readAllBlocks, saveBlock, deleteBlock, fetchFromUrl } from "../src/db.js";
+         readAllBlocks, saveBlock, deleteBlock } from "../src/db.js";
 
 // ── CSS variables ─────────────────────────────────────────────────────────────
 const _style = document.createElement("style");
@@ -118,7 +118,7 @@ const newGroup = (side) => ({
 const defaultNewEquipment = () => ({
   id: `eq-${Date.now()}`, manufacturer: "", model: "", category: "Other",
   width: 17, height: 1.75, depth: 8, unit: "in", wattage: 0,
-  systemName: "", location: "", groups: []
+  systemName: "", location: "COMM1", notes: "", groups: []
 });
 
 function expandGroups(groups) {
@@ -140,6 +140,8 @@ function expandGroups(groups) {
 
 const INITIAL_LIBRARY = (SAMPLE_LIBRARY || []).map(eq => ({
   ...eq,
+  notes:    eq.notes    || "",
+  location: eq.location || "COMM1",
   groups: (eq.groups || []).map(g => ({
     ...g,
     direction:   g.direction   || "Input",
@@ -482,7 +484,7 @@ function SidePanel({ groups, side, onUpdate, onDelete, onMove, onAdd, onReorder 
   );
 }
 
-function BlockEditor({ equipment, onSave, onCancel }) {
+function BlockEditor({ equipment, onSave, onCancel, manufacturers = [] }) {
   const [eq, setEq] = useState({ ...equipment, groups: equipment.groups || [] });
   const set = (key, val) => setEq(prev => ({ ...prev, [key]: val }));
   const updateGroup   = (id, g)      => setEq(prev => ({ ...prev, groups: prev.groups.map(x => x.id === id ? g : x) }));
@@ -509,8 +511,14 @@ function BlockEditor({ equipment, onSave, onCancel }) {
   };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr 2fr", gap: 10, padding: "12px 16px", background: "var(--color-background-secondary)", borderRadius: 10, border: "0.5px solid var(--color-border-tertiary)" }}>
-        <div><label style={labelStyle}>Manufacturer</label><input value={eq.manufacturer} onChange={e => set("manufacturer", e.target.value)} placeholder="e.g. Samsung" /></div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, padding: "12px 16px", background: "var(--color-background-secondary)", borderRadius: 10, border: "0.5px solid var(--color-border-tertiary)" }}>
+        <div><label style={labelStyle}>Manufacturer</label>
+          <input value={eq.manufacturer} onChange={e => set("manufacturer", e.target.value)}
+            placeholder="e.g. Samsung" list="mfr-list" autoComplete="off" />
+          <datalist id="mfr-list">
+            {manufacturers.filter(Boolean).map(m => <option key={m} value={m} />)}
+          </datalist>
+        </div>
         <div><label style={labelStyle}>Model</label><input value={eq.model} onChange={e => set("model", e.target.value)} placeholder="e.g. QB85C" /></div>
         <div><label style={labelStyle}>System name</label><input value={eq.systemName} onChange={e => set("systemName", e.target.value)} placeholder="e.g. DIS01" /></div>
         <div><label style={labelStyle}>Category</label>
@@ -518,7 +526,11 @@ function BlockEditor({ equipment, onSave, onCancel }) {
             {CATEGORIES.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
-        <div><label style={labelStyle}>Location</label><input value={eq.location} onChange={e => set("location", e.target.value)} placeholder="e.g. J1.01 (FRONT WALL)" /></div>
+        <div style={{ gridColumn: "span 2" }}><label style={labelStyle}>Description / notes</label>
+          <textarea value={eq.notes || ""} onChange={e => set("notes", e.target.value)}
+            placeholder="Describe the equipment, special requirements, notes for the equipment list..."
+            rows={3} style={{ resize: "vertical", width: "100%", boxSizing: "border-box", fontFamily: "inherit", fontSize: 13, minHeight: 60 }} />
+        </div>
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, padding: "12px 16px", background: "var(--color-background-secondary)", borderRadius: 10, border: "0.5px solid var(--color-border-tertiary)", alignItems: "end" }}>
         <div style={{ width: 80 }}><label style={labelStyle}>Width</label><input type="number" value={eq.width} onChange={e => set("width", +e.target.value)} /></div>
@@ -615,7 +627,6 @@ export default function LibraryApp() {
   // On mount: restore persisted directory handle
   useEffect(() => {
     (async () => {
-      try { const f=await fetchFromUrl(); if(f.length>0){setLibrary(f);setDbStatus("connected");} } catch(_){}
       if (!fsaSupported) return;
       const h = await loadHandle().catch(() => null);
       if (!h) return;
@@ -657,6 +668,10 @@ export default function LibraryApp() {
   };
 
   const handleSave = async (eq) => {
+    if (!eq.manufacturer || !eq.manufacturer.trim()) {
+      alert("Please set a Manufacturer before saving.");
+      return;
+    }
     const updated = library.find(e => e.id === eq.id)
       ? library.map(e => e.id === eq.id ? eq : e)
       : [...library, eq];
@@ -720,23 +735,21 @@ export default function LibraryApp() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {/* Status dot */}
           {fsaSupported && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-                <div style={{ width: 7, height: 7, borderRadius: "50%", flexShrink: 0, background: { disconnected:"#555e7a", connected:"#1D9E75", syncing:"#EF9F27", saving:"#EF9F27", error:"#E24B4A" }[dbStatus] }} />
-                <span style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>{{ disconnected:"no database", connected:"connected", syncing:"syncing…", saving:"saving…", error:"error" }[dbStatus]}</span>
-              </div>
-              {dirHandle && (
-                <button onClick={handleSyncFromDatabase} disabled={dbStatus==="syncing"||dbStatus==="saving"}
-                  style={{ fontSize: 12, padding: "5px 12px", cursor: "pointer", borderRadius: 6, background: "var(--color-background-secondary)", border: "0.5px solid var(--color-border-secondary)", color: "var(--color-text-secondary)", opacity: (dbStatus==="syncing"||dbStatus==="saving") ? 0.5 : 1 }}>
-                  ↻ Sync from database
-                </button>
-              )}
-              <button onClick={handlePickFolder}
-                style={{ fontSize: 12, padding: "5px 12px", cursor: "pointer", borderRadius: 6, background: "var(--color-background-secondary)", border: "0.5px solid var(--color-border-secondary)", color: "var(--color-text-secondary)" }}>
-                ⌂ {dirHandle ? "Change folder" : "Connect database folder"}
-              </button>
-            </div>
+            <div title={dbStatus} style={{
+              width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+              background: dbStatus === "connected" ? "#1D9E75"
+                        : dbStatus === "syncing" || dbStatus === "saving" ? "#EF9F27"
+                        : dbStatus === "error"   ? "#E24B4A"
+                        : "#555e7a",
+            }} />
+          )}
+          {/* Folder button — only on FSA-capable browsers */}
+          {fsaSupported && (
+            <button onClick={handlePickFolder} style={{ fontSize: 13, padding: "7px 16px", cursor: "pointer" }}>
+              {dirHandle ? "⌂ Change folder" : "⌂ Connect database folder"}
+            </button>
           )}
           {view === "editor" && <button onClick={() => { setEditing(null); setView("library"); }} style={{ fontSize: 13, padding: "7px 16px", cursor: "pointer" }}>← Back</button>}
           {view === "library" && <button onClick={() => { setEditing(defaultNewEquipment()); setView("editor"); }} style={{ fontSize: 13, padding: "7px 16px", cursor: "pointer", background: "var(--color-background-info)", color: "var(--color-text-info)", border: "0.5px solid var(--color-border-info)", borderRadius: 6, fontWeight: 500 }}>+ New block</button>}
@@ -770,7 +783,7 @@ export default function LibraryApp() {
           </div>
         </>
       )}
-      {view === "editor" && editing && <BlockEditor equipment={editing} onSave={handleSave} onCancel={() => { setEditing(null); setView("library"); }} />}
+      {view === "editor" && editing && <BlockEditor equipment={editing} onSave={handleSave} onCancel={() => { setEditing(null); setView("library"); }} manufacturers={[...new Set(library.map(e => e.manufacturer).filter(Boolean))].sort()} />}
 
       {/* ── Delete confirmation modal ── */}
       {confirmDelete && (

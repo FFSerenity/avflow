@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "dev:lib": "vite --config library-dev/vite.config.js",
     "build:lib": "vite build --config library-dev/vite.config.js",
-    "build:all": "vite build && vite build --config library-dev/vite.config.js && cp -r database dist/database"
+    "build:all": "vite build && vite build --config library-dev/vite.config.js && node -e \"const fs=require('fs'),path=require('path');function c(s,d){fs.mkdirSync(d,{recursive:true});for(const e of fs.readdirSync(s,{withFileTypes:true})){const sp=path.join(s,e.name),dp=path.join(d,e.name);e.isDirectory()?c(sp,dp):fs.copyFileSync(sp,dp)}}c('database','dist/database')\""
   },
   "dependencies": {
     "react": "^18.2.0",
