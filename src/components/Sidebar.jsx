@@ -3,20 +3,8 @@ import { SIGNAL_COLORS, ROW_H, HEADER_H, FOOTER_H, BODY_W, PAD_W, STUB_W, DOT_R 
 import { expandGroups, getPrefix, getNextSysName } from "../geometry.js";
 import { fsaSupported, loadHandle, saveHandle, verifyPermission, pickDirectory, readAllBlocks, fetchFromUrl } from "../db.js";
 
-// Fallback built-in library (used when no database folder is connected)
-const SAMPLE_LIBRARY = [
-  { id:"eq-001", manufacturer:"Samsung", model:"QB85C", category:"Display", comment:"85\" Crystal UHD Signage", width:74.97, height:42.73, depth:1.12, unit:"in", wattage:300, systemName:"DIS01", location:"", groups:[
-    {id:"g1",signal:"HDMI",qty:2,connector:"HDMI Type A",direction:"Input",side:"left",description:"HDMI"},
-    {id:"g2",signal:"HDMI",qty:1,connector:"HDMI Type A",direction:"Input",side:"left",description:"HDMI 3 ARC"},
-    {id:"g3",signal:"USB-A",qty:2,connector:"USB Type-A",direction:"Input",side:"left",description:"USB 2.0"},
-    {id:"g4",signal:"RS-232",qty:1,connector:"TRS 3.5mm",direction:"Input",side:"left",description:"RS-232C"},
-    {id:"g5",signal:"RJ45 LAN",qty:1,connector:"RJ45",direction:"Input",side:"left",description:"LAN"},
-    {id:"g6",signal:"IR",qty:1,connector:"TRS 3.5mm",direction:"Input",side:"left",description:"IR"},
-    {id:"g7",signal:"IEC Power",qty:1,connector:"IEC 60320 C13",direction:"Input",side:"left",description:"POWER"},
-    {id:"g8",signal:"3.5mm Stereo",qty:1,connector:"TRS 3.5mm",direction:"Output",side:"right",description:"STEREO"},
-    {id:"g9",signal:"RS-232",qty:1,connector:"TRS 3.5mm",direction:"Output",side:"right",description:"RS-232C"},
-  ]},
-];
+// Empty — library is populated entirely from the connected database folder or GitHub fetch
+const SAMPLE_LIBRARY = [];
 
 function TinyBlock({ eq }) {
   const pins  = expandGroups(eq.groups || []);
@@ -88,7 +76,7 @@ export default function Sidebar({ blocks, onDragStart }) {
   const [search,    setSearch]    = useState("");
   const [filterMfr, setFilterMfr] = useState("All");
   const [filterCat, setFilterCat] = useState("All");
-  const [library,   setLibrary]   = useState(SAMPLE_LIBRARY);
+  const [library,   setLibrary]   = useState([]);
   const [dirHandle, setDirHandle] = useState(null);
   // "built-in" | "github" | "connected" | "syncing" | "saving" | "error"
   // "github" = loaded from GitHub URL, NOT a local folder — dot stays gray
@@ -131,7 +119,7 @@ export default function Sidebar({ blocks, onDragStart }) {
   // Default to first manufacturer once real data arrives
   useEffect(() => {
     if (hasDefaultedMfr.current) return;
-    if (library.length <= SAMPLE_LIBRARY.length) return;
+    if (library.length === 0) return;
     const mfrs = [...new Set(library.map(e => e.manufacturer))].sort();
     if (mfrs.length > 0) { setFilterMfr(mfrs[0]); hasDefaultedMfr.current = true; }
   }, [library]);
@@ -215,13 +203,13 @@ export default function Sidebar({ blocks, onDragStart }) {
   }[dbStatus] ?? "No local folder — using GitHub database";
 
   const statusLabel = {
-    "built-in": "database connected",
-    "github":   "database connected",
-    connected:  "database connected",
+    "built-in": "no local folder",
+    "github":   "no local folder",
+    connected:  "folder connected",
     syncing:    "syncing…",
     saving:     "saving…",
     error:      "connection error",
-  }[dbStatus] ?? "database connected";
+  }[dbStatus] ?? "no local folder";
 
   return (
     <div style={{ width:200, background:"#13161f", borderRight:"1px solid #1e2433",
@@ -301,6 +289,16 @@ export default function Sidebar({ blocks, onDragStart }) {
 
       {/* ── Library list ── */}
       <div className="avflow-sidebar-list" style={{ flex:1, overflowY:"auto", padding:"0 6px 10px 10px" }}>
+        {library.length === 0 && (
+          <div style={{ padding:"20px 0", textAlign:"center", color:"#555e7a", fontSize:11, lineHeight:1.6 }}>
+            Connect a database folder<br/>or wait for GitHub sync
+          </div>
+        )}
+        {library.length > 0 && filtered.length === 0 && (
+          <div style={{ padding:"20px 0", textAlign:"center", color:"#555e7a", fontSize:11 }}>
+            No blocks match your search
+          </div>
+        )}
         {filtered.slice(0, visibleCount).map(eq => (
           <LibItem key={eq.id} eq={eq} blocks={blocks} onDragStart={onDragStart} />
         ))}

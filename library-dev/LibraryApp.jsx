@@ -614,7 +614,7 @@ function EquipmentCard({ eq, onEdit, onDelete }) {
 // ── Root ──────────────────────────────────────────────────────────────────────
 
 export default function LibraryApp() {
-  const [library,       setLibrary]       = useState(INITIAL_LIBRARY);
+  const [library,       setLibrary]       = useState([]);
   const [view,          setView]          = useState("library");
   const [editing,       setEditing]       = useState(null);
   const [search,        setSearch]        = useState("");
@@ -662,8 +662,7 @@ export default function LibraryApp() {
   // Default to first manufacturer once real data arrives
   useEffect(() => {
     if (hasDefaultedMfr.current) return;
-    const baseLen = (SAMPLE_LIBRARY || []).length;
-    if (library.length <= baseLen) return;
+    if (library.length === 0) return;
     const mfrs = [...new Set(library.map(e => e.manufacturer).filter(Boolean))].sort();
     if (mfrs.length > 0) { setFilterMfr(mfrs[0]); hasDefaultedMfr.current = true; }
   }, [library]);
@@ -817,9 +816,18 @@ export default function LibraryApp() {
           <div style={{ display: "flex", gap: 10, marginBottom: 16, fontSize: 12, color: "var(--color-text-secondary)" }}>
             <span style={{ background: "var(--color-background-secondary)", borderRadius: 4, padding: "3px 10px" }}>{filtered.length} blocks</span>
           </div>
-          {filtered.length === 0 && (
+          {library.length === 0 && (
             <div style={{ textAlign: "center", padding: "40px 0", color: "var(--color-text-tertiary)", fontSize: 14 }}>
-              No blocks found — <button onClick={() => { setEditing(defaultNewEquipment()); setView("editor"); }} style={{ background: "none", border: "none", color: "var(--color-text-info)", cursor: "pointer", fontSize: 14, padding: 0 }}>create your first block</button>
+              No database connected —{" "}
+              {fsaSupported
+                ? <button onClick={handlePickFolder} style={{ background: "none", border: "none", color: "var(--color-text-info)", cursor: "pointer", fontSize: 14, padding: 0 }}>connect a folder</button>
+                : <span style={{ color: "var(--color-text-tertiary)" }}>waiting for GitHub sync</span>
+              }
+            </div>
+          )}
+          {library.length > 0 && filtered.length === 0 && (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "var(--color-text-tertiary)", fontSize: 14 }}>
+              No blocks match your filters — <button onClick={() => { setEditing(defaultNewEquipment()); setView("editor"); }} style={{ background: "none", border: "none", color: "var(--color-text-info)", cursor: "pointer", fontSize: 14, padding: 0 }}>create a new block</button>
             </div>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, 200px)", gap: 12, alignItems: "stretch" }}>
