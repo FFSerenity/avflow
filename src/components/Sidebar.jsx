@@ -199,6 +199,13 @@ export default function Sidebar({ blocks, onDragStart }) {
   return (
     <div style={{ width:200, background:"#13161f", borderRight:"1px solid #1e2433",
       display:"flex", flexDirection:"column", flexShrink:0, overflow:"hidden" }}>
+      <style>{`
+        .avflow-sidebar-list::-webkit-scrollbar { width: 4px; }
+        .avflow-sidebar-list::-webkit-scrollbar-track { background: transparent; }
+        .avflow-sidebar-list::-webkit-scrollbar-thumb { background: #2d3a52; border-radius: 3px; }
+        .avflow-sidebar-list::-webkit-scrollbar-thumb:hover { background: #3d4663; }
+        .avflow-sidebar-list { scrollbar-width: thin; scrollbar-color: #2d3a52 transparent; }
+      `}</style>
 
       {/* ── Brand header ── */}
       <div style={{ padding:"12px 12px 10px", borderBottom:"1px solid #1e2433",
@@ -266,7 +273,7 @@ export default function Sidebar({ blocks, onDragStart }) {
       </div>
 
       {/* ── Library list ── */}
-      <div style={{ flex:1, overflowY:"auto", padding:"0 10px 10px" }}>
+      <div className="avflow-sidebar-list" style={{ flex:1, overflowY:"auto", padding:"0 10px 10px" }}>
         {filtered.map(eq => (
           <LibItem key={eq.id} eq={eq} blocks={blocks} onDragStart={onDragStart} />
         ))}
