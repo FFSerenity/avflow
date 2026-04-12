@@ -645,12 +645,12 @@ export default function LibraryApp() {
         }
       }
       // Fallback: fetch from GitHub raw URL (same source the canvas uses)
+      // Note: dot stays gray — we are NOT connected to a local folder
       try {
-        setDbStatus("syncing");
         const data = await fetchFromUrl();
         if (data.length > 0) setLibrary(data);
-        setDbStatus("disconnected");
-      } catch (e) { console.error(e); setDbStatus("disconnected"); }
+      } catch (e) { console.error(e); }
+      setDbStatus("disconnected");
     })();
   }, []);
 
@@ -749,7 +749,13 @@ export default function LibraryApp() {
         <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {/* Status dot */}
           {fsaSupported && (
-            <div title={dbStatus} style={{
+            <div title={
+                dbStatus === "connected"   ? "Local folder connected" :
+                dbStatus === "syncing"     ? "Reading local folder..." :
+                dbStatus === "saving"      ? "Saving to local folder..." :
+                dbStatus === "error"       ? "Folder error — reconnect" :
+                                             "No local folder — using GitHub database"
+              } style={{
               width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
               background: dbStatus === "connected" ? "#1D9E75"
                         : dbStatus === "syncing" || dbStatus === "saving" ? "#EF9F27"
