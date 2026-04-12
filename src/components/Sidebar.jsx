@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { SIGNAL_COLORS, ROW_H, HEADER_H, FOOTER_H, BODY_W, PAD_W, STUB_W, DOT_R } from "../constants.js";
 import { expandGroups, getPrefix, getNextSysName } from "../geometry.js";
 import { fsaSupported, loadHandle, saveHandle, verifyPermission, pickDirectory, readAllBlocks, fetchFromUrl } from "../db.js";
@@ -94,6 +94,11 @@ export default function Sidebar({ blocks, onDragStart }) {
   // "github" = loaded from GitHub URL, NOT a local folder — dot stays gray
   const [dbStatus,  setDbStatus]  = useState("built-in");
 
+  const PAGE_SIZE = 50;
+  const [visibleCount,    setVisibleCount]    = useState(50);
+  const sentinelRef     = useRef(null);
+  const hasDefaultedMfr = useRef(false);
+
   // On mount: try local FSA folder first, fall back to GitHub fetch (dot stays gray)
   useEffect(() => {
     (async () => {
@@ -121,6 +126,28 @@ export default function Sidebar({ blocks, onDragStart }) {
       } catch (_) {}
       setDbStatus("built-in");
     })();
+  }, []);
+
+  // Default to first manufacturer once real data arrives
+  useEffect(() => {
+    if (hasDefaultedMfr.current) return;
+    if (library.length <= SAMPLE_LIBRARY.length) return;
+    const mfrs = [...new Set(library.map(e => e.manufacturer))].sort();
+    if (mfrs.length > 0) { setFilterMfr(mfrs[0]); hasDefaultedMfr.current = true; }
+  }, [library]);
+
+  // Reset visible count whenever filters or search change
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [search, filterMfr, filterCat]);
+
+  // IntersectionObserver — load next page when sentinel scrolls into view
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) setVisibleCount(c => c + PAGE_SIZE);
+    }, { threshold: 0.1 });
+    obs.observe(el);
+    return () => obs.disconnect();
   }, []);
 
   const handlePickFolder = async () => {
@@ -274,9 +301,11 @@ export default function Sidebar({ blocks, onDragStart }) {
 
       {/* ── Library list ── */}
       <div className="avflow-sidebar-list" style={{ flex:1, overflowY:"auto", padding:"0 6px 10px 10px" }}>
-        {filtered.map(eq => (
+        {filtered.slice(0, visibleCount).map(eq => (
           <LibItem key={eq.id} eq={eq} blocks={blocks} onDragStart={onDragStart} />
         ))}
+        {/* Sentinel — triggers next page load when scrolled into view */}
+        <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
     </div>
   );

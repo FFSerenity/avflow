@@ -624,6 +624,11 @@ export default function LibraryApp() {
   const [dirHandle,     setDirHandle]     = useState(null);
   const [dbStatus,      setDbStatus]      = useState("disconnected"); // "disconnected"|"connected"|"syncing"|"saving"|"error"
 
+  const PAGE_SIZE = 50;
+  const [visibleCount,    setVisibleCount]    = useState(50);
+  const sentinelRef     = useRef(null);
+  const hasDefaultedMfr = useRef(false);
+
   // On mount: restore persisted directory handle, or fetch from GitHub
   useEffect(() => {
     (async () => {
@@ -652,6 +657,29 @@ export default function LibraryApp() {
       } catch (e) { console.error(e); }
       setDbStatus("disconnected");
     })();
+  }, []);
+
+  // Default to first manufacturer once real data arrives
+  useEffect(() => {
+    if (hasDefaultedMfr.current) return;
+    const baseLen = (SAMPLE_LIBRARY || []).length;
+    if (library.length <= baseLen) return;
+    const mfrs = [...new Set(library.map(e => e.manufacturer).filter(Boolean))].sort();
+    if (mfrs.length > 0) { setFilterMfr(mfrs[0]); hasDefaultedMfr.current = true; }
+  }, [library]);
+
+  // Reset visible count whenever filters or search change
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [search, filterMfr, filterCat]);
+
+  // IntersectionObserver — load next batch when sentinel scrolls into view
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) setVisibleCount(c => c + PAGE_SIZE);
+    }, { threshold: 0.1 });
+    obs.observe(el);
+    return () => obs.disconnect();
   }, []);
 
   const handlePickFolder = async () => {
@@ -795,9 +823,11 @@ export default function LibraryApp() {
             </div>
           )}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, 200px)", gap: 12, alignItems: "stretch" }}>
-            {filtered.map(eq => <EquipmentCard key={eq.id} eq={eq}
+            {filtered.slice(0, visibleCount).map(eq => <EquipmentCard key={eq.id} eq={eq}
               onEdit={eq => { setEditing(eq); setView("editor"); }}
               onDelete={id => setConfirmDelete(library.find(e => e.id === id))} />)}
+          {/* Sentinel — triggers next page load when scrolled into view */}
+          <div ref={sentinelRef} style={{ width: "100%", height: 1, gridColumn: "1 / -1" }} />
           </div>
         </>
       )}
