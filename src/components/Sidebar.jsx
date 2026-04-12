@@ -273,7 +273,7 @@ export default function Sidebar({ blocks, onDragStart }) {
       </div>
 
       {/* ── Library list ── */}
-      <div className="avflow-sidebar-list" style={{ flex:1, overflowY:"auto", padding:"0 10px 10px" }}>
+      <div className="avflow-sidebar-list" style={{ flex:1, overflowY:"auto", padding:"0 6px 10px 10px" }}>
         {filtered.map(eq => (
           <LibItem key={eq.id} eq={eq} blocks={blocks} onDragStart={onDragStart} />
         ))}
