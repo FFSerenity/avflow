@@ -174,7 +174,7 @@ export default function Sidebar({ blocks, onDragStart }) {
   };
 
   const manufacturers = ["All", ...new Set(library.map(e => e.manufacturer))];
-  const categories    = ["All", ...new Set(library.map(e => e.category))];
+  const categories    = ["All", ...[...new Set(library.map(e => e.category).filter(Boolean))].sort()];
   const filtered = library.filter(eq => {
     const q = search.toLowerCase();
     const matchesSearch = !q || eq.model.toLowerCase().includes(q)

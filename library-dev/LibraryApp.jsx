@@ -65,14 +65,24 @@ const DOT_R    = 4;
 
 // ── Signal colours — must stay in sync with src/constants.js ─────────────────
 const SIGNAL_COLORS = {
-  "HDMI":"#E24B4A","DisplayPort":"#E24B4A","DVI":"#E24B4A","VGA":"#E24B4A","SDI":"#E24B4A",
-  "USB-A":"#7F77DD","USB-B":"#7F77DD","USB-C":"#7F77DD","USB 2.0":"#7F77DD","USB 3.0":"#7F77DD",
-  "RJ45 LAN":"#1D9E75","RJ45 PoE":"#1D9E75","RJ45 PoE+":"#1D9E75","RJ45 PoE++":"#1D9E75","RJ45 DM":"#1D9E75",
+  // Video
+  "HDMI":"#E24B4A","DisplayPort":"#E24B4A","DVI":"#E24B4A","VGA":"#E24B4A","SDI":"#E24B4A","Video":"#E24B4A",
+  // USB / Data
+  "USB-A":"#7F77DD","USB-B":"#7F77DD","USB-C":"#7F77DD","USB 2.0":"#7F77DD","USB 3.0":"#7F77DD","USB":"#7F77DD","Data":"#7F77DD",
+  // Network
+  "RJ45 LAN":"#1D9E75","RJ45 PoE":"#1D9E75","RJ45 PoE+":"#1D9E75","RJ45 PoE++":"#1D9E75","RJ45 DM":"#1D9E75","LAN":"#1D9E75",
+  // Audio
   "3.5mm Stereo":"#EF9F27","3.5mm Mono":"#EF9F27","XLR":"#EF9F27","RCA":"#EF9F27",
   "Phoenix 2-pin":"#EF9F27","Phoenix 3-pin":"#EF9F27","Phoenix 5-pin":"#EF9F27","Phoenix 6-pin":"#EF9F27",
-  "RS-232":"#D4537E","RS-485":"#D4537E","IR":"#D4537E","GPIO":"#D4537E","Relay":"#D4537E",
-  "IEC Power":"#888780","NEMA 5-15":"#888780","DC Barrel":"#888780","DC Phoenix":"#888780",
-  "Fiber":"#85B7EB","Coaxial":"#85B7EB","BNC":"#85B7EB","Other":"#B4B2A9"
+  "Audio":"#EF9F27","Dante":"#EF9F27","Intercom":"#EF9F27",
+  // Control / Serial
+  "RS-232":"#D4537E","RS-485":"#D4537E","IR":"#D4537E","GPIO":"#D4537E","Relay":"#D4537E","Control":"#D4537E","Cresnet":"#D4537E",
+  // Power
+  "IEC Power":"#888780","NEMA 5-15":"#888780","DC Barrel":"#888780","DC Phoenix":"#888780","Power":"#888780",
+  // Fibre / Coaxial / RF
+  "Fiber":"#85B7EB","Coaxial":"#85B7EB","BNC":"#85B7EB","Fibre":"#85B7EB","RF":"#85B7EB",
+  // Other
+  "Other":"#B4B2A9","Hybrid":"#B4B2A9","Sync":"#B4B2A9",
 };
 
 const SIGNAL_TYPES = [
@@ -100,7 +110,7 @@ const CONNECTOR_TYPES = [
 ];
 
 const PORT_DIRECTIONS = ["Input","Output","Bidirectional"];
-const CATEGORIES = ["Display","Video Processing","Audio","Control","Network","Power","Camera","Microphone","Laptop/PC","Other"];
+// Categories are derived from loaded library data
 
 const RACK_U_PRESETS = [
   {u:1,inch:1.75,mm:44.45},{u:2,inch:3.5,mm:88.9},{u:3,inch:5.25,mm:133.35},
@@ -811,7 +821,7 @@ export default function LibraryApp() {
             </select>
             <select value={filterCat} onChange={e => setFilterCat(e.target.value)} style={{ width: 160 }}>
               <option value="All">All categories</option>
-              {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+              {[...new Set(library.map(e => e.category).filter(Boolean))].sort().map(c => <option key={c}>{c}</option>)}
             </select>
           </div>
           <div style={{ display: "flex", gap: 10, marginBottom: 16, fontSize: 12, color: "var(--color-text-secondary)" }}>
