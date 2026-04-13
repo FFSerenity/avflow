@@ -198,7 +198,7 @@ export function buildHPath(pts) {
 //
 // Clearance rule: if two crossings on the same V segment are < 2R apart,
 // both arcs are skipped (straight line passes through instead).
-export function buildVPathWithArcs(pts, hSegs, R = GRID / 2) {
+export function buildVPathWithArcs(pts, hSegs, R = 6) {
   const DIAM = R * 2;
   let d = '';
 
