@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { SIGNAL_COLORS, CABLE_PREFIX, GRID, snap, snapG, ROW_H, HEADER_H, FOOTER_H, BODY_W, PAD_W, STUB_W, DOT_R, ANNOT_COLORS } from "./constants.js";
-import { expandGroups, getPinPositions, measureText, defaultVx, smartVx, buildWaypoints, buildPath, addTurn, removeTurn, normalizeWire, cloudPath, pinLabel, getPrefix, getNextSysName } from "./geometry.js";
+import { expandGroups, getPinPositions, measureText, defaultVx, smartVx, buildWaypoints, buildPath, buildHPath, buildVPathWithArcs, addTurn, removeTurn, normalizeWire, cloudPath, pinLabel, getPrefix, getNextSysName } from "./geometry.js";
 import BlockView from "./components/BlockView.jsx";
 import Sidebar, { SAMPLE_LIBRARY } from "./components/Sidebar.jsx";
 
@@ -1325,6 +1325,22 @@ export default function AVCanvas() {
   }).filter(Boolean);
   wireEndpointsRef.current = wireEndpoints;
 
+  // Pre-compute all horizontal segments from all non-feather wires.
+  // Used by the vertical-segments pass to detect crossings and insert arcs.
+  const allHSegs = wireEndpoints.filter(w => !w.feather).flatMap(w => {
+    const vx_    = w.vx != null ? w.vx : defaultVx(w.x1, w.x2);
+    const turns_ = w.turns || [];
+    const pts_   = buildWaypoints(w.x1, w.y1, w.x2, w.y2, vx_, turns_);
+    const segs   = [];
+    for (let i = 0; i < pts_.length - 1; i++) {
+      const p0 = pts_[i], p1 = pts_[i + 1];
+      if (p0.y === p1.y) {
+        segs.push({ x1: Math.min(p0.x, p1.x), x2: Math.max(p0.x, p1.x), y: p0.y, wireId: w.id });
+      }
+    }
+    return segs;
+  });
+
   return (
     <div style={{ display:"flex", height:"100vh", background:"#0f1117", fontFamily:"system-ui,sans-serif", overflow:"hidden" }}>
       <style>{`@keyframes orphan-pulse { 0%,100%{opacity:0.5;r:13} 50%{opacity:0.15;r:18} }`}</style>
@@ -1894,8 +1910,8 @@ export default function AVCanvas() {
                     return <line key={i} x1={p0.x} y1={p0.y} x2={p1.x} y2={p1.y} {...wireClickProps} />;
                   });
                 })()}
-                {/* Visible wire */}
-                <path d={path} fill="none" stroke={stroke} strokeWidth={sw}
+                {/* Visible wire — horizontal segments only; vertical segments rendered in pass 2 below */}
+                <path d={buildHPath(pts)} fill="none" stroke={stroke} strokeWidth={sw}
                   strokeDasharray={w.dashed ? "5 3" : "none"}
                   strokeLinejoin="round" strokeLinecap="round"
                   style={{ pointerEvents:"none" }} />
@@ -1967,6 +1983,25 @@ export default function AVCanvas() {
                 </text>
               </g>
             )})}
+
+            {/* Pass 2 — vertical segments with crossing arcs, always on top */}
+            {wireEndpoints.filter(w => !w.feather).map(w => {
+              const isSel  = selWires.has(w.id);
+              const vx     = w.vx != null ? w.vx : defaultVx(w.x1, w.x2);
+              const turns  = w.turns || [];
+              const pts    = buildWaypoints(w.x1, w.y1, w.x2, w.y2, vx, turns);
+              const stroke = isSel ? "#fff" : w.color;
+              const sw     = isSel ? 2.5 : 1.5;
+              const hSegs  = allHSegs.filter(hs => hs.wireId !== w.id);
+              const vPath  = buildVPathWithArcs(pts, hSegs);
+              if (!vPath) return null;
+              return (
+                <path key={w.id + '-v'} d={vPath} fill="none" stroke={stroke} strokeWidth={sw}
+                  strokeDasharray={w.dashed ? "5 3" : "none"}
+                  strokeLinejoin="round" strokeLinecap="round"
+                  style={{ pointerEvents:"none" }} />
+              );
+            })}
 
                         {/* In-progress wire preview */}
             {drawing && (() => {

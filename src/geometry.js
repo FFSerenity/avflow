@@ -169,3 +169,78 @@ export function getNextSysName(prefix, usedNames) {
   while (nameSet.has(`${prefix}${String(i).padStart(2,"0")}`)) i++;
   return `${prefix}${String(i).padStart(2,"0")}`;
 }
+
+// ── Wire crossing arc helpers ─────────────────────────────────────────────
+// buildHPath and buildVPathWithArcs power the two-pass wire render in Canvas.jsx
+// that keeps vertical segments always on top of horizontal ones.
+
+// Build an SVG path string for HORIZONTAL segments only.
+// Used in pass 1 (bottom layer) of the wire render.
+export function buildHPath(pts) {
+  let d = '';
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i], p1 = pts[i + 1];
+    if (p0.y === p1.y) d += `M${p0.x},${p0.y} L${p1.x},${p1.y} `;
+  }
+  return d.trim();
+}
+
+// Build an SVG path string for VERTICAL segments only, inserting a
+// right-bowing (concave-left) semicircular arc wherever this wire's
+// vertical segment crosses another wire's horizontal segment.
+//
+// hSegs — H segments from OTHER wires: [{ x1, x2, y, wireId }, ...]
+// R     — arc radius in px; default = GRID / 2 = 8
+//
+// Arc direction:
+//   going down → clockwise arc (sweep=1)  → bows RIGHT
+//   going up   → counter-clockwise (sweep=0) → also bows RIGHT
+//
+// Clearance rule: if two crossings on the same V segment are < 2R apart,
+// both arcs are skipped (straight line passes through instead).
+export function buildVPathWithArcs(pts, hSegs, R = GRID / 2) {
+  const DIAM = R * 2;
+  let d = '';
+
+  for (let i = 0; i < pts.length - 1; i++) {
+    const p0 = pts[i], p1 = pts[i + 1];
+    if (p0.x !== p1.x) continue;           // horizontal segment — skip
+
+    const x         = p0.x;
+    const yMin      = Math.min(p0.y, p1.y);
+    const yMax      = Math.max(p0.y, p1.y);
+    const goingDown = p1.y > p0.y;
+
+    // Find H segments from other wires that cross this V segment
+    const rawYs = hSegs
+      .filter(hs => hs.x1 < x && x < hs.x2 && hs.y > yMin && hs.y < yMax)
+      .map(hs => hs.y)
+      .sort((a, b) => a - b);
+
+    // Discard crossings too close to the segment's own endpoints
+    const segYs = rawYs.filter(y => y > yMin + R && y < yMax - R);
+
+    // Clearance filter — skip any crossing whose nearest neighbour is < 2R away
+    const filteredYs = segYs.filter((y, j) => {
+      const prev = segYs[j - 1];
+      const next = segYs[j + 1];
+      if (prev !== undefined && y - prev < DIAM) return false;
+      if (next !== undefined && next - y < DIAM) return false;
+      return true;
+    });
+
+    // Order crossings in the direction of travel
+    const orderedYs = goingDown ? filteredYs : [...filteredYs].reverse();
+
+    d += `M${x},${p0.y} `;
+    for (const cy of orderedYs) {
+      const arcEntry = goingDown ? cy - R : cy + R;
+      const arcExit  = goingDown ? cy + R : cy - R;
+      const sweep    = goingDown ? 1 : 0;
+      d += `L${x},${arcEntry} A${R},${R} 0 0 ${sweep} ${x},${arcExit} `;
+    }
+    d += `L${x},${p1.y} `;
+  }
+
+  return d.trim();
+}
