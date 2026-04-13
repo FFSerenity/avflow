@@ -1325,21 +1325,58 @@ export default function AVCanvas() {
   }).filter(Boolean);
   wireEndpointsRef.current = wireEndpoints;
 
-  // Pre-compute all horizontal segments from all non-feather wires.
+  // Pre-compute all horizontal segments from all wires (regular + feather tails).
   // Used by the vertical-segments pass to detect crossings and insert arcs.
-  const allHSegs = wireEndpoints.filter(w => !w.feather).flatMap(w => {
-    const vx_    = w.vx != null ? w.vx : defaultVx(w.x1, w.x2);
-    const turns_ = w.turns || [];
-    const pts_   = buildWaypoints(w.x1, w.y1, w.x2, w.y2, vx_, turns_);
-    const segs   = [];
-    for (let i = 0; i < pts_.length - 1; i++) {
-      const p0 = pts_[i], p1 = pts_[i + 1];
-      if (p0.y === p1.y) {
-        segs.push({ x1: Math.min(p0.x, p1.x), x2: Math.max(p0.x, p1.x), y: p0.y, wireId: w.id });
+  const allHSegs = [
+    // ── Regular wire H segments ──────────────────────────────────────────
+    ...wireEndpoints.filter(w => !w.feather).flatMap(w => {
+      const vx_    = w.vx != null ? w.vx : defaultVx(w.x1, w.x2);
+      const turns_ = w.turns || [];
+      const pts_   = buildWaypoints(w.x1, w.y1, w.x2, w.y2, vx_, turns_);
+      const segs   = [];
+      for (let i = 0; i < pts_.length - 1; i++) {
+        const p0 = pts_[i], p1 = pts_[i + 1];
+        if (p0.y === p1.y)
+          segs.push({ x1: Math.min(p0.x, p1.x), x2: Math.max(p0.x, p1.x), y: p0.y, wireId: w.id });
       }
-    }
-    return segs;
-  });
+      return segs;
+    }),
+    // ── Feather tail H segments ──────────────────────────────────────────
+    ...wireEndpoints.filter(w => w.feather).flatMap(w => {
+      const FTAIL     = GRID * 3;
+      const sx0 = w.x1, sy = w.y1, dx0 = w.x2, dy = w.y2;
+      const srcBlock  = blocks.find(b => b.id === w.fromBlockId);
+      const tgtBlock  = blocks.find(b => b.id === w.toBlockId);
+      const srcIsLeft = srcBlock && (w.x1 < srcBlock.x + PAD_W);
+      const dstIsLeft = tgtBlock && (w.x2 < tgtBlock.x + PAD_W);
+      const srcGoRight = !srcIsLeft;
+      const dstGoRight = dstIsLeft;
+      const srcVx = sx0 + (w.vx  != null ? w.vx  : (srcIsLeft ? -FTAIL : FTAIL));
+      const dstVx = dx0 + (w.vx2 != null ? w.vx2 : (dstIsLeft ? -FTAIL : FTAIL));
+      const hasSrcTurn  = w.srcVy  != null;
+      const hasDstTurn  = w.dstVy  != null;
+      const srcBentY    = hasSrcTurn ? sy + w.srcVy : sy;
+      const dstBentY    = hasDstTurn ? dy + w.dstVy : dy;
+      const srcVx2      = srcVx + (srcGoRight ?  (w.srcVx2 ?? FTAIL) : -(w.srcVx2 ?? FTAIL));
+      const dstVx2      = dstVx + (dstGoRight ? -(w.dstVx2 ?? FTAIL) :  (w.dstVx2 ?? FTAIL));
+      const srcChevFlatX = hasSrcTurn ? srcVx2 : srcVx;
+      const dstChevTipX  = hasDstTurn ? dstVx2 : dstVx;
+      const segs = [];
+      if (hasSrcTurn) {
+        segs.push({ x1: Math.min(sx0, srcVx),        x2: Math.max(sx0, srcVx),        y: sy,       wireId: w.id });
+        segs.push({ x1: Math.min(srcVx, srcChevFlatX), x2: Math.max(srcVx, srcChevFlatX), y: srcBentY, wireId: w.id });
+      } else {
+        segs.push({ x1: Math.min(sx0, srcChevFlatX), x2: Math.max(sx0, srcChevFlatX), y: sy, wireId: w.id });
+      }
+      if (hasDstTurn) {
+        segs.push({ x1: Math.min(dx0, dstVx),        x2: Math.max(dx0, dstVx),        y: dy,       wireId: w.id });
+        segs.push({ x1: Math.min(dstVx, dstChevTipX), x2: Math.max(dstVx, dstChevTipX), y: dstBentY, wireId: w.id });
+      } else {
+        segs.push({ x1: Math.min(dx0, dstChevTipX), x2: Math.max(dx0, dstChevTipX), y: dy, wireId: w.id });
+      }
+      return segs;
+    }),
+  ];
 
   return (
     <div style={{ display:"flex", height:"100vh", background:"#0f1117", fontFamily:"system-ui,sans-serif", overflow:"hidden" }}>
@@ -1744,14 +1781,19 @@ export default function AVCanvas() {
                   style={{ cursor:"pointer" }}>
 
                   {/* ── SOURCE TAIL ── */}
-                  {hasSrcTurn
-                    ? <path
-                        d={`M${sx0},${sy} L${srcVx},${sy} L${srcVx},${srcBentY} L${srcChevFlatX},${srcBentY}`}
-                        fill="none" stroke={stroke} strokeWidth={1.5}
-                        strokeLinejoin="round" style={{ pointerEvents:"none" }} />
-                    : <line x1={sx0} y1={sy} x2={srcChevFlatX} y2={sy}
-                        stroke={stroke} strokeWidth={1.5} style={{ pointerEvents:"none" }} />
-                  }
+                  {hasSrcTurn ? <>
+                    {/* H segments only */}
+                    <path
+                      d={`M${sx0},${sy} L${srcVx},${sy} M${srcVx},${srcBentY} L${srcChevFlatX},${srcBentY}`}
+                      fill="none" stroke={stroke} strokeWidth={1.5}
+                      strokeLinejoin="round" style={{ pointerEvents:"none" }} />
+                    {/* V segment with crossing arc */}
+                    <path
+                      d={buildVPathWithArcs([{x:srcVx,y:sy},{x:srcVx,y:srcBentY}], allHSegs.filter(hs => hs.wireId !== w.id))}
+                      fill="none" stroke={stroke} strokeWidth={1.5}
+                      strokeLinecap="round" style={{ pointerEvents:"none" }} />
+                  </> : <line x1={sx0} y1={sy} x2={srcChevFlatX} y2={sy}
+                    stroke={stroke} strokeWidth={1.5} style={{ pointerEvents:"none" }} />}
                   {/* Cable number near pin */}
                   <rect x={srcNumX-numW/2} y={sy-5} width={numW} height={10} rx={2}
                     fill="#13161f" opacity={0.9} style={{ pointerEvents:"none" }} />
@@ -1810,14 +1852,19 @@ export default function AVCanvas() {
                   )}
 
                   {/* ── DEST TAIL ── */}
-                  {hasDstTurn
-                    ? <path
-                        d={`M${dx0},${dy} L${dstVx},${dy} L${dstVx},${dstBentY} L${dstChevTipX},${dstBentY}`}
-                        fill="none" stroke={stroke} strokeWidth={1.5}
-                        strokeLinejoin="round" style={{ pointerEvents:"none" }} />
-                    : <line x1={dx0} y1={dy} x2={dstChevTipX} y2={dy}
-                        stroke={stroke} strokeWidth={1.5} style={{ pointerEvents:"none" }} />
-                  }
+                  {hasDstTurn ? <>
+                    {/* H segments only */}
+                    <path
+                      d={`M${dx0},${dy} L${dstVx},${dy} M${dstVx},${dstBentY} L${dstChevTipX},${dstBentY}`}
+                      fill="none" stroke={stroke} strokeWidth={1.5}
+                      strokeLinejoin="round" style={{ pointerEvents:"none" }} />
+                    {/* V segment with crossing arc */}
+                    <path
+                      d={buildVPathWithArcs([{x:dstVx,y:dy},{x:dstVx,y:dstBentY}], allHSegs.filter(hs => hs.wireId !== w.id))}
+                      fill="none" stroke={stroke} strokeWidth={1.5}
+                      strokeLinecap="round" style={{ pointerEvents:"none" }} />
+                  </> : <line x1={dx0} y1={dy} x2={dstChevTipX} y2={dy}
+                    stroke={stroke} strokeWidth={1.5} style={{ pointerEvents:"none" }} />}
                   <rect x={dstNumX-numW/2} y={dy-5} width={numW} height={10} rx={2}
                     fill="#13161f" opacity={0.9} style={{ pointerEvents:"none" }} />
                   <text x={dstNumX} y={dy} fontSize={7} fill={stroke}
