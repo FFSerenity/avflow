@@ -127,7 +127,8 @@ export default function Sidebar({ blocks, onDragStart }) {
   // Reset visible count whenever filters or search change
   useEffect(() => { setVisibleCount(PAGE_SIZE); }, [search, filterMfr, filterCat]);
 
-  // IntersectionObserver — load next page when sentinel scrolls into view
+  // IntersectionObserver — reconnects on every filter/search change so it
+  // re-evaluates the sentinel position after visibleCount resets to PAGE_SIZE
   useEffect(() => {
     const el = sentinelRef.current;
     if (!el) return;
@@ -136,7 +137,7 @@ export default function Sidebar({ blocks, onDragStart }) {
     }, { threshold: 0.1 });
     obs.observe(el);
     return () => obs.disconnect();
-  }, []);
+  }, [search, filterMfr, filterCat]);
 
   const handlePickFolder = async () => {
     try {
