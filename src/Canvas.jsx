@@ -1010,29 +1010,27 @@ export default function AVCanvas() {
           wxMin = Math.min(...allX); wxMax = Math.max(...allX);
           wyMin = Math.min(...allY); wyMax = Math.max(...allY);
         } else {
-          // Regular wire: test window mode with bounding box, crossing mode per-segment
-          // (bounding box crossing is too coarse for L/Z-shaped wires — selects neighbours)
+          // Regular wire: window = bounding box, crossing = per-segment
+          // (bounding box crossing is too coarse for L/Z shapes — selects neighbours)
           const vx = w.vx != null ? w.vx : defaultVx(w.x1, w.x2);
           const pts = buildWaypoints(w.x1, w.y1, w.x2, w.y2, vx, w.turns || []);
-          wxMin = Math.min(...pts.map(p => p.x));
-          wxMax = Math.max(...pts.map(p => p.x));
-          wyMin = Math.min(...pts.map(p => p.y));
-          wyMax = Math.max(...pts.map(p => p.y));
-          const wInside = wxMin >= x1 && wxMax <= x2 && wyMin >= y1 && wyMax <= y2;
+          const wxMin2 = Math.min(...pts.map(p => p.x));
+          const wxMax2 = Math.max(...pts.map(p => p.x));
+          const wyMin2 = Math.min(...pts.map(p => p.y));
+          const wyMax2 = Math.max(...pts.map(p => p.y));
+          const wInside = wxMin2 >= x1 && wxMax2 <= x2 && wyMin2 >= y1 && wyMax2 <= y2;
           const wCrossing = pts.slice(1).some((p1, i) => {
             const p0 = pts[i];
             if (p0.y === p1.y) {
-              // Horizontal segment
               const sxMin = Math.min(p0.x, p1.x), sxMax = Math.max(p0.x, p1.x);
               return p0.y >= y1 && p0.y <= y2 && sxMin <= x2 && sxMax >= x1;
             } else {
-              // Vertical segment
               const syMin = Math.min(p0.y, p1.y), syMax = Math.max(p0.y, p1.y);
               return p0.x >= x1 && p0.x <= x2 && syMin <= y2 && syMax >= y1;
             }
           });
           if (isWindow ? wInside : wCrossing) newWires.add(w.id);
-          continue;
+          return; // forEach — skip feather bbox path below
         }
         const inside   = wxMin >= x1 && wxMax <= x2 && wyMin >= y1 && wyMax <= y2;
         const crossing = !(wxMin > x2 || wxMax < x1 || wyMin > y2 || wyMax < y1);
