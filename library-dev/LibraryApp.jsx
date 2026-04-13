@@ -110,7 +110,8 @@ const CONNECTOR_TYPES = [
 ];
 
 const PORT_DIRECTIONS = ["Input","Output","Bidirectional"];
-// Categories are derived from loaded library data
+// Categories for the block editor dropdown (canonical fixed list)
+const CATEGORIES = ["Display","Video Processing","Audio","Control","Network","Power","Camera","Microphone","Laptop/PC","Other"];
 
 const RACK_U_PRESETS = [
   {u:1,inch:1.75,mm:44.45},{u:2,inch:3.5,mm:88.9},{u:3,inch:5.25,mm:133.35},
