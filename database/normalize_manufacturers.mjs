@@ -60,4 +60,4 @@ for (const filename of jsonFiles) {
 }
 
 console.log(`\nDone. ${totalFixed} block(s) updated across ${jsonFiles.length} files.`);
-console.log("Restart your dev server (or hit ↻ Sync on Netlify) to see the fix.");
+console.log("Restart your dev server to see the fix.");
