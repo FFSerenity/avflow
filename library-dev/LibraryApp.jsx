@@ -521,7 +521,7 @@ function BlockEditor({ equipment, onSave, onCancel, manufacturers = [] }) {
     set("height", eq.unit === "mm" ? preset.mm : preset.inch);
   };
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14, maxWidth: 1400 }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, padding: "12px 16px", background: "var(--color-background-secondary)", borderRadius: 10, border: "0.5px solid var(--color-border-tertiary)", maxWidth: 720 }}>
         <div><label style={labelStyle}>Manufacturer</label>
           <input value={eq.manufacturer} onChange={e => set("manufacturer", e.target.value)}
@@ -537,7 +537,7 @@ function BlockEditor({ equipment, onSave, onCancel, manufacturers = [] }) {
             {CATEGORIES.map(c => <option key={c}>{c}</option>)}
           </select>
         </div>
-        <div style={{ gridColumn: "span 2" }}><label style={labelStyle}>Description / notes</label>
+        <div style={{ gridColumn: "span 4" }}><label style={labelStyle}>Description / notes</label>
           <textarea value={eq.notes || ""} onChange={e => set("notes", e.target.value)}
             placeholder="Describe the equipment, special requirements, notes for the equipment list..."
             rows={3} style={{ resize: "vertical", width: "100%", boxSizing: "border-box", fontFamily: "inherit", fontSize: 13, minHeight: 60 }} />
