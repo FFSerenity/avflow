@@ -6,6 +6,52 @@ import { fsaSupported, loadHandle, saveHandle, verifyPermission, pickDirectory, 
 // Empty — library is populated entirely from the connected database folder or GitHub fetch
 const SAMPLE_LIBRARY = [];
 
+// Custom dropdown to replace native <select> — supports styled scrollbar
+function CustomSelect({ value, onChange, options, style = {} }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+  const label = options.find(o => (typeof o === "object" ? o.value : o) === value);
+  const displayLabel = typeof label === "object" ? label.label : label;
+  return (
+    <div ref={ref} style={{ position:"relative", ...style }}>
+      <div onClick={() => setOpen(v => !v)}
+        style={{ background:"#1e2433", border:"0.5px solid #2d3a52", borderRadius:4,
+          color:"#8892a8", fontSize:11, padding:"5px 8px", cursor:"pointer",
+          display:"flex", justifyContent:"space-between", alignItems:"center", userSelect:"none" }}>
+        <span style={{ overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{displayLabel}</span>
+        <span style={{ fontSize:8, marginLeft:4, color:"#555e7a" }}>{open ? "▲" : "▼"}</span>
+      </div>
+      {open && (
+        <div className="avflow-custom-select-list" style={{ position:"absolute", top:"100%", left:0, right:0, zIndex:100,
+          background:"#1e2433", border:"0.5px solid #2d3a52", borderRadius:4, marginTop:2,
+          maxHeight:200, overflowY:"auto", boxShadow:"0 4px 12px rgba(0,0,0,0.4)" }}>
+          {options.map(o => {
+            const val = typeof o === "object" ? o.value : o;
+            const lbl = typeof o === "object" ? o.label : o;
+            const selected = val === value;
+            return (
+              <div key={val} onClick={() => { onChange(val); setOpen(false); }}
+                style={{ padding:"5px 8px", fontSize:11, cursor:"pointer", userSelect:"none",
+                  color: selected ? "#a8d4ff" : "#8892a8",
+                  background: selected ? "#2d3555" : "transparent" }}
+                onMouseEnter={e => { if (!selected) e.currentTarget.style.background = "#252c3d"; }}
+                onMouseLeave={e => { if (!selected) e.currentTarget.style.background = "transparent"; }}>
+                {lbl}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function HoverPreview({ eq }) {
   const pins  = expandGroups(eq.groups || []);
   const left  = pins.filter(p => p.side === "left");
@@ -268,11 +314,11 @@ export default function Sidebar({ blocks, onDragStart }) {
     <div onContextMenu={e => e.preventDefault()} style={{ width:200, background:"#13161f", borderRight:"1px solid #1e2433",
       display:"flex", flexDirection:"column", flexShrink:0, overflow:"hidden" }}>
       <style>{`
-        .avflow-sidebar-list::-webkit-scrollbar { width: 4px; }
-        .avflow-sidebar-list::-webkit-scrollbar-track { background: transparent; }
-        .avflow-sidebar-list::-webkit-scrollbar-thumb { background: #2d3a52; border-radius: 3px; }
-        .avflow-sidebar-list::-webkit-scrollbar-thumb:hover { background: #3d4663; }
-        .avflow-sidebar-list { scrollbar-width: thin; scrollbar-color: #2d3a52 transparent; }
+        .avflow-sidebar-list::-webkit-scrollbar, .avflow-custom-select-list::-webkit-scrollbar { width: 4px; }
+        .avflow-sidebar-list::-webkit-scrollbar-track, .avflow-custom-select-list::-webkit-scrollbar-track { background: transparent; }
+        .avflow-sidebar-list::-webkit-scrollbar-thumb, .avflow-custom-select-list::-webkit-scrollbar-thumb { background: #2d3a52; border-radius: 3px; }
+        .avflow-sidebar-list::-webkit-scrollbar-thumb:hover, .avflow-custom-select-list::-webkit-scrollbar-thumb:hover { background: #3d4663; }
+        .avflow-sidebar-list, .avflow-custom-select-list { scrollbar-width: thin; scrollbar-color: #2d3a52 transparent; }
       `}</style>
 
       {/* ── Brand header ── */}
@@ -325,16 +371,10 @@ export default function Sidebar({ blocks, onDragStart }) {
           style={{ width:"100%", background:"#1e2433", border:"0.5px solid #2d3a52",
             borderRadius:5, color:"#c8d0e8", fontSize:12, padding:"6px 10px",
             outline:"none", boxSizing:"border-box" }} />
-        <select value={filterMfr} onChange={e => setFilterMfr(e.target.value)}
-          style={{ width:"100%", marginTop:6, background:"#1e2433", border:"0.5px solid #2d3a52",
-            borderRadius:4, color:"#8892a8", fontSize:11, padding:"5px 8px" }}>
-          {manufacturers.map(m => <option key={m}>{m}</option>)}
-        </select>
-        <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
-          style={{ width:"100%", marginTop:5, background:"#1e2433", border:"0.5px solid #2d3a52",
-            borderRadius:4, color:"#8892a8", fontSize:11, padding:"5px 8px" }}>
-          {categories.map(c => <option key={c}>{c}</option>)}
-        </select>
+        <CustomSelect value={filterMfr} onChange={setFilterMfr} options={manufacturers}
+          style={{ width:"100%", marginTop:6 }} />
+        <CustomSelect value={filterCat} onChange={setFilterCat} options={categories}
+          style={{ width:"100%", marginTop:5 }} />
         <div style={{ fontSize:10, color:"#555e7a", marginTop:6 }}>
           {filtered.length} BLOCKS · DRAG TO CANVAS
         </div>
