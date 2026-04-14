@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { SAMPLE_LIBRARY } from "../src/components/Sidebar.jsx";
 import { fsaSupported, loadHandle, saveHandle, verifyPermission, pickDirectory,
-         readAllBlocks, saveBlock, deleteBlock, fetchFromUrl } from "../src/db.js";
+         readAllBlocks, saveBlock, deleteBlock, writeManufacturerFile, fetchFromUrl } from "../src/db.js";
 
 // ── CSS variables ─────────────────────────────────────────────────────────────
 const _style = document.createElement("style");
@@ -110,8 +110,8 @@ const CONNECTOR_TYPES = [
 ];
 
 const PORT_DIRECTIONS = ["Input","Output","Bidirectional"];
-// Categories for the block editor dropdown (canonical fixed list)
-const CATEGORIES = ["Display","Video Processing","Audio","Control","Network","Power","Camera","Microphone","Laptop/PC","Other"];
+// Seed categories — used as fallback when no blocks are loaded
+const SEED_CATEGORIES = ["Display","Video Processing","Audio","Control","Network","Power","Camera","Microphone","Laptop/PC","Other"];
 
 const RACK_U_PRESETS = [
   {u:1,inch:1.75,mm:44.45},{u:2,inch:3.5,mm:88.9},{u:3,inch:5.25,mm:133.35},
@@ -495,9 +495,17 @@ function SidePanel({ groups, side, onUpdate, onDelete, onMove, onAdd, onReorder 
   );
 }
 
-function BlockEditor({ equipment, onSave, onCancel, manufacturers = [] }) {
+function BlockEditor({ equipment, onSave, onCancel, manufacturers = [], allCategories = [] }) {
   const [eq, setEq] = useState({ ...equipment, groups: equipment.groups || [] });
   const set = (key, val) => setEq(prev => ({ ...prev, [key]: val }));
+  const handleCategoryChange = (e) => {
+    if (e.target.value === "__new__") {
+      const name = prompt("Enter new category name:");
+      if (name && name.trim()) set("category", name.trim());
+    } else {
+      set("category", e.target.value);
+    }
+  };
   const updateGroup   = (id, g)      => setEq(prev => ({ ...prev, groups: prev.groups.map(x => x.id === id ? g : x) }));
   const deleteGroup   = (id)         => setEq(prev => ({ ...prev, groups: prev.groups.filter(x => x.id !== id) }));
   const moveGroup     = (id, toSide) => setEq(prev => ({ ...prev, groups: prev.groups.map(x => x.id === id ? { ...x, side: toSide } : x) }));
@@ -533,8 +541,10 @@ function BlockEditor({ equipment, onSave, onCancel, manufacturers = [] }) {
         <div><label style={labelStyle}>Model</label><input value={eq.model} onChange={e => set("model", e.target.value)} placeholder="e.g. QB85C" /></div>
         <div><label style={labelStyle}>System name</label><input value={eq.systemName} onChange={e => set("systemName", e.target.value)} placeholder="e.g. DIS01" /></div>
         <div><label style={labelStyle}>Category</label>
-          <select value={eq.category} onChange={e => set("category", e.target.value)}>
-            {CATEGORIES.map(c => <option key={c}>{c}</option>)}
+          <select value={eq.category} onChange={handleCategoryChange}>
+            {allCategories.map(c => <option key={c}>{c}</option>)}
+            {!allCategories.includes(eq.category) && <option key={eq.category}>{eq.category}</option>}
+            <option value="__new__">+ Create new…</option>
           </select>
         </div>
         <div style={{ gridColumn: "span 4" }}><label style={labelStyle}>Description / notes</label>
@@ -624,6 +634,139 @@ function EquipmentCard({ eq, onEdit, onDelete }) {
 
 // ── Root ──────────────────────────────────────────────────────────────────────
 
+// ── Category Manager Panel ───────────────────────────────────────────────────
+function CategoryManager({ library, setLibrary, dirHandle, setDbStatus, onClose }) {
+  const [newCat, setNewCat] = useState("");
+  const [renaming, setRenaming] = useState(null); // { cat, newName }
+  const [mergeFrom, setMergeFrom] = useState("");
+  const [mergeTo, setMergeTo] = useState("");
+
+  const catCounts = {};
+  library.forEach(b => { if (b.category) catCounts[b.category] = (catCounts[b.category] || 0) + 1; });
+  const categories = Object.keys(catCounts).sort();
+
+  const bulkUpdate = async (oldCat, newCat) => {
+    const updated = library.map(b => b.category === oldCat ? { ...b, category: newCat } : b);
+    setLibrary(updated);
+    if (dirHandle) {
+      setDbStatus("saving");
+      try {
+        const ok = await verifyPermission(dirHandle);
+        if (!ok) { setDbStatus("error"); return; }
+        const affectedMfrs = [...new Set(updated.filter(b => b.category === newCat).map(b => b.manufacturer))];
+        for (const mfr of affectedMfrs) await writeManufacturerFile(dirHandle, mfr, updated);
+        setDbStatus("connected");
+      } catch (e) { console.error(e); setDbStatus("error"); }
+    }
+  };
+
+  const handleAdd = () => {
+    const name = newCat.trim();
+    if (!name) return;
+    if (catCounts[name]) { alert(`"${name}" already exists.`); return; }
+    // Category will appear once a block uses it — just close and inform
+    setNewCat("");
+    alert(`Category "${name}" created. Select it when editing a block.`);
+  };
+
+  const handleRename = async () => {
+    if (!renaming || !renaming.newName.trim()) return;
+    const name = renaming.newName.trim();
+    if (name === renaming.cat) { setRenaming(null); return; }
+    if (catCounts[name]) { alert(`"${name}" already exists. Use merge instead.`); return; }
+    await bulkUpdate(renaming.cat, name);
+    setRenaming(null);
+  };
+
+  const handleDelete = async (cat) => {
+    if (catCounts[cat] > 0) return;
+    // Nothing to update — category has no blocks, it just won't appear anymore
+    alert(`Category "${cat}" removed (had no blocks).`);
+  };
+
+  const handleMerge = async () => {
+    if (!mergeFrom || !mergeTo || mergeFrom === mergeTo) return;
+    if (!confirm(`Merge all "${mergeFrom}" blocks into "${mergeTo}"? This will update ${catCounts[mergeFrom] || 0} block(s).`)) return;
+    await bulkUpdate(mergeFrom, mergeTo);
+    setMergeFrom(""); setMergeTo("");
+  };
+
+  const panelStyle = {
+    background: "var(--color-background-secondary)", border: "0.5px solid var(--color-border-tertiary)",
+    borderRadius: 10, padding: "14px 16px", marginBottom: 16
+  };
+  const sectionLabel = { fontSize: 11, fontWeight: 600, color: "var(--color-text-tertiary)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 };
+  const smallBtn = { fontSize: 11, padding: "3px 10px", cursor: "pointer", borderRadius: 4, border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-primary)", color: "var(--color-text-secondary)" };
+  const primaryBtn = { ...smallBtn, background: "var(--color-background-info)", color: "var(--color-text-info)", border: "0.5px solid var(--color-border-info)" };
+  const dangerBtn = { ...smallBtn, background: "var(--color-background-danger)", color: "var(--color-text-danger)", border: "0.5px solid var(--color-border-danger)" };
+
+  return (
+    <div style={panelStyle}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+        <span style={{ fontSize: 13, fontWeight: 500 }}>Category Manager</span>
+        <button onClick={onClose} style={smallBtn}>Close</button>
+      </div>
+
+      {/* Category list */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={sectionLabel}>Categories</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {categories.map(cat => (
+            <div key={cat} style={{ display: "flex", alignItems: "center", gap: 8, padding: "4px 8px", borderRadius: 5, background: "var(--color-background-primary)" }}>
+              {renaming?.cat === cat ? (
+                <>
+                  <input value={renaming.newName} onChange={e => setRenaming({ ...renaming, newName: e.target.value })}
+                    onKeyDown={e => { if (e.key === "Enter") handleRename(); if (e.key === "Escape") setRenaming(null); }}
+                    autoFocus style={{ flex: 1, fontSize: 12, padding: "2px 6px" }} />
+                  <button onClick={handleRename} style={primaryBtn}>Save</button>
+                  <button onClick={() => setRenaming(null)} style={smallBtn}>Cancel</button>
+                </>
+              ) : (
+                <>
+                  <span style={{ flex: 1, fontSize: 12 }}>{cat}</span>
+                  <span style={{ fontSize: 10, color: "var(--color-text-tertiary)", minWidth: 50 }}>{catCounts[cat]} block{catCounts[cat] !== 1 ? "s" : ""}</span>
+                  <button onClick={() => setRenaming({ cat, newName: cat })} style={smallBtn}>Rename</button>
+                  <button onClick={() => handleDelete(cat)} disabled={catCounts[cat] > 0}
+                    style={{ ...dangerBtn, opacity: catCounts[cat] > 0 ? 0.3 : 1, cursor: catCounts[cat] > 0 ? "not-allowed" : "pointer" }}>Delete</button>
+                </>
+              )}
+            </div>
+          ))}
+          {categories.length === 0 && <div style={{ fontSize: 11, color: "var(--color-text-tertiary)", padding: 8 }}>No categories yet</div>}
+        </div>
+      </div>
+
+      {/* Add new */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={sectionLabel}>Add New Category</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <input value={newCat} onChange={e => setNewCat(e.target.value)} placeholder="New category name…"
+            onKeyDown={e => { if (e.key === "Enter") handleAdd(); }}
+            style={{ flex: 1, fontSize: 12, padding: "4px 8px" }} />
+          <button onClick={handleAdd} style={primaryBtn}>Add</button>
+        </div>
+      </div>
+
+      {/* Merge */}
+      <div>
+        <div style={sectionLabel}>Merge Categories</div>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
+          <select value={mergeFrom} onChange={e => setMergeFrom(e.target.value)} style={{ fontSize: 12, padding: "4px 6px" }}>
+            <option value="">Merge from…</option>
+            {categories.filter(c => c !== mergeTo).map(c => <option key={c}>{c}</option>)}
+          </select>
+          <span style={{ fontSize: 11, color: "var(--color-text-tertiary)" }}>→</span>
+          <select value={mergeTo} onChange={e => setMergeTo(e.target.value)} style={{ fontSize: 12, padding: "4px 6px" }}>
+            <option value="">Into…</option>
+            {categories.filter(c => c !== mergeFrom).map(c => <option key={c}>{c}</option>)}
+          </select>
+          <button onClick={handleMerge} disabled={!mergeFrom || !mergeTo} style={{ ...primaryBtn, opacity: (!mergeFrom || !mergeTo) ? 0.4 : 1 }}>Merge</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LibraryApp() {
   const [library,       setLibrary]       = useState([]);
   const [view,          setView]          = useState("library");
@@ -632,6 +775,7 @@ export default function LibraryApp() {
   const [filterCat,     setFilterCat]     = useState("All");
   const [filterMfr,     setFilterMfr]     = useState("All");
   const [confirmDelete, setConfirmDelete] = useState(null);
+  const [showCatManager, setShowCatManager] = useState(false);
   const [dirHandle,     setDirHandle]     = useState(null);
   const [dbStatus,      setDbStatus]      = useState("disconnected"); // "disconnected"|"connected"|"syncing"|"saving"|"error"
 
@@ -757,6 +901,7 @@ export default function LibraryApp() {
   };
 
   const manufacturers = ["All", ...Array.from(new Set(library.map(e => e.manufacturer).filter(Boolean))).sort()];
+  const allCategories = [...new Set([...SEED_CATEGORIES, ...library.map(e => e.category).filter(Boolean)])].sort();
   const filtered = library.filter(eq => {
     const q = search.toLowerCase();
     return (!q || eq.manufacturer.toLowerCase().includes(q) || eq.model.toLowerCase().includes(q) || (eq.systemName||"").toLowerCase().includes(q))
@@ -824,7 +969,11 @@ export default function LibraryApp() {
               <option value="All">All categories</option>
               {[...new Set(library.map(e => e.category).filter(Boolean))].sort().map(c => <option key={c}>{c}</option>)}
             </select>
+            <button onClick={() => setShowCatManager(v => !v)}
+              style={{ fontSize: 12, padding: "5px 10px", cursor: "pointer", background: showCatManager ? "var(--color-background-info)" : "var(--color-background-secondary)", color: showCatManager ? "var(--color-text-info)" : "var(--color-text-secondary)", border: "0.5px solid var(--color-border-tertiary)", borderRadius: 5, whiteSpace: "nowrap" }}
+              title="Manage categories">✎ Categories</button>
           </div>
+          {showCatManager && <CategoryManager library={library} setLibrary={setLibrary} dirHandle={dirHandle} setDbStatus={setDbStatus} onClose={() => setShowCatManager(false)} />}
           <div style={{ display: "flex", gap: 10, marginBottom: 16, fontSize: 12, color: "var(--color-text-secondary)" }}>
             <span style={{ background: "var(--color-background-secondary)", borderRadius: 4, padding: "3px 10px" }}>{filtered.length} blocks</span>
           </div>
@@ -851,7 +1000,7 @@ export default function LibraryApp() {
           </div>
         </>
       )}
-      {view === "editor" && editing && <BlockEditor equipment={editing} onSave={handleSave} onCancel={() => { setEditing(null); setView("library"); }} manufacturers={[...new Set(library.map(e => e.manufacturer).filter(Boolean))].sort()} />}
+      {view === "editor" && editing && <BlockEditor equipment={editing} onSave={handleSave} onCancel={() => { setEditing(null); setView("library"); }} manufacturers={[...new Set(library.map(e => e.manufacturer).filter(Boolean))].sort()} allCategories={allCategories} />}
 
       {/* ── Delete confirmation modal ── */}
       {confirmDelete && (
