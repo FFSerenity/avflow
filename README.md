@@ -2,6 +2,11 @@
 
 A CAD-style schematic design tool for AV (Audio/Visual) system integration. Built with React + Vite. Draw equipment blocks, wire them together, annotate, and organise into location zones.
 
+## Live Demo
+
+- **Canvas:** https://ffserenity.github.io/avflow/
+- **Block Library:** https://ffserenity.github.io/avflow/library/
+
 ## Quick Start
 
 ```bash
