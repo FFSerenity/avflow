@@ -693,7 +693,7 @@ function CategoryManager({ library, setLibrary, dirHandle, setDbStatus, onClose 
 
   const panelStyle = {
     background: "var(--color-background-secondary)", border: "0.5px solid var(--color-border-tertiary)",
-    borderRadius: 10, padding: "14px 16px", marginBottom: 16
+    borderRadius: 10, padding: "14px 16px", marginBottom: 16, maxWidth: 480, marginLeft: "auto", marginRight: "auto"
   };
   const sectionLabel = { fontSize: 11, fontWeight: 600, color: "var(--color-text-tertiary)", marginBottom: 6, textTransform: "uppercase", letterSpacing: 0.5 };
   const smallBtn = { fontSize: 11, padding: "3px 10px", cursor: "pointer", borderRadius: 4, border: "0.5px solid var(--color-border-tertiary)", background: "var(--color-background-primary)", color: "var(--color-text-secondary)" };
