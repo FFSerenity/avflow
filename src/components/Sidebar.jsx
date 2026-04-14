@@ -6,50 +6,101 @@ import { fsaSupported, loadHandle, saveHandle, verifyPermission, pickDirectory, 
 // Empty — library is populated entirely from the connected database folder or GitHub fetch
 const SAMPLE_LIBRARY = [];
 
-function TinyBlock({ eq }) {
+function HoverPreview({ eq }) {
   const pins  = expandGroups(eq.groups || []);
   const left  = pins.filter(p => p.side === "left");
   const right = pins.filter(p => p.side === "right");
   const rows  = Math.max(left.length, right.length, 1);
-  const bH    = HEADER_H + rows * ROW_H + FOOTER_H;
-  const bW    = PAD_W + BODY_W + PAD_W;
-  const SCALE = 0.28;
-  return (
-    <div style={{ position:"absolute", top:8, right:8, width: bW * SCALE, height: bH * SCALE,
-      overflow:"hidden", borderRadius:2, opacity:0.85, pointerEvents:"none" }}>
-      <div style={{ transform:`scale(${SCALE})`, transformOrigin:"top left",
-        width: bW, height: bH, position:"absolute", top:0, left:0 }}>
-        <div style={{ position:"absolute", left:PAD_W, top:0, width:BODY_W, height:HEADER_H,
-          background:"#2d3555", borderRadius:"6px 6px 0 0", border:"2px solid #3d4663",
-          display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center" }}>
-          {eq.systemName && <div style={{ fontSize:10, fontWeight:600, color:"#a8d4ff" }}>{eq.systemName}</div>}
-          <div style={{ fontSize:8, color:"#7a8ab0" }}>{eq.manufacturer}</div>
-          <div style={{ fontSize:9, fontWeight:500, color:"#c8d0e8", textAlign:"center", padding:"0 4px" }}>{eq.model}</div>
+  const blockH = HEADER_H + rows * ROW_H + FOOTER_H;
+  const blockW = PAD_W + BODY_W + PAD_W;
+  const borderColor = "#3d4663";
+
+  const PinRow = ({ p, side }) => {
+    const color = SIGNAL_COLORS[p.signal] || "#888";
+    const isLeft = side === "left";
+    return (
+      <div style={{ position:"relative", height: ROW_H, display:"flex",
+        alignItems:"center", flexDirection: isLeft ? "row-reverse" : "row" }}>
+        <div style={{ position:"absolute",
+          bottom: ROW_H / 2 + DOT_R,
+          [isLeft ? "right" : "left"]: 4,
+          height: 10, textAlign: isLeft ? "right" : "left" }}>
+          <span style={{ fontSize:6, color, lineHeight:"10px", display:"block",
+            whiteSpace:"nowrap", transform:"translateY(2px)" }}>
+            {p.connector}
+          </span>
         </div>
-        <div style={{ position:"absolute", left:PAD_W, top:HEADER_H, width:BODY_W, height:rows*ROW_H,
-          background:"#1e2433", borderLeft:"2px solid #3d4663", borderRight:"2px solid #3d4663" }} />
-        <div style={{ position:"absolute", left:PAD_W, top:HEADER_H+rows*ROW_H, width:BODY_W, height:FOOTER_H,
-          background:"#1e2433", borderRadius:"0 0 6px 6px", border:"2px solid #3d4663", borderTop:"none" }} />
-        {left.map((p, i) => { const color = SIGNAL_COLORS[p.signal]||"#888"; const y = HEADER_H + i*ROW_H + ROW_H/2;
-          return (<div key={p.id} style={{ position:"absolute", left:0, top:y-1, display:"flex", alignItems:"center" }}>
-            <div style={{ width:DOT_R*2, height:DOT_R*2, borderRadius:"50%", background:color, border:"2px solid #1a1f2e" }} />
-            <div style={{ width:STUB_W, height:2, background:color }} />
-          </div>); })}
-        {right.map((p, i) => { const color = SIGNAL_COLORS[p.signal]||"#888"; const y = HEADER_H + i*ROW_H + ROW_H/2;
-          return (<div key={p.id} style={{ position:"absolute", right:0, top:y-1, display:"flex", alignItems:"center", flexDirection:"row-reverse" }}>
-            <div style={{ width:DOT_R*2, height:DOT_R*2, borderRadius:"50%", background:color, border:"2px solid #1a1f2e" }} />
-            <div style={{ width:STUB_W, height:2, background:color }} />
-          </div>); })}
+        <div style={{ width: STUB_W, height:2, background:color, flexShrink:0 }} />
+        <div style={{ width: DOT_R*2, height: DOT_R*2, borderRadius:"50%",
+          background:color, border:"2px solid #1a1f2e", flexShrink:0 }} />
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ position:"fixed", left:210, top:10, zIndex:1000, pointerEvents:"none",
+      background:"#13161fee", border:"1px solid #2d3a52", borderRadius:8,
+      padding:"10px 12px", boxShadow:"0 4px 20px rgba(0,0,0,0.5)" }}>
+      {/* Info bar */}
+      <div style={{ display:"flex", gap:8, alignItems:"center", marginBottom:8, fontSize:10 }}>
+        <span style={{ color:"#7a8ab0" }}>{eq.manufacturer}</span>
+        <span style={{ color:"#555e7a" }}>·</span>
+        <span style={{ background:"#2d3555", color:"#7a8ab0", border:"0.5px solid #3d4663",
+          borderRadius:3, padding:"1px 5px", fontSize:9 }}>{eq.category}</span>
+        {eq.wattage > 0 && <>
+          <span style={{ color:"#555e7a" }}>·</span>
+          <span style={{ color:"#555e7a" }}>{eq.wattage}W</span>
+        </>}
+      </div>
+      {/* Block — half size, matches BlockView layout */}
+      <div style={{ position:"relative", width: blockW * 0.65, height: blockH * 0.65, overflow:"hidden" }}>
+        <div style={{ transform:"scale(0.65)", transformOrigin:"top left", position:"absolute", top:0, left:0, width: blockW, height: blockH }}>
+          {/* Header */}
+          <div style={{ position:"absolute", left: PAD_W, top:0, width: BODY_W, height: HEADER_H,
+            background:"#2d3555", borderRadius:"6px 6px 0 0",
+            borderTop:`2px solid ${borderColor}`, borderLeft:`2px solid ${borderColor}`,
+            borderRight:`2px solid ${borderColor}`,
+            display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center",
+            padding:"4px 6px" }}>
+            <div style={{ fontSize:10, fontWeight:600, color:"#a8d4ff", lineHeight:1.3, textAlign:"center" }}>{eq.systemName}</div>
+            <div style={{ fontSize:7, color:"#7a8ab0", lineHeight:1.2 }}>{eq.manufacturer}</div>
+            <div style={{ fontSize:9, fontWeight:500, color:"#c8d0e8", lineHeight:1.2, textAlign:"center" }}>{eq.model}</div>
+          </div>
+          {/* Body */}
+          <div style={{ position:"absolute", left: PAD_W, top: HEADER_H, width: BODY_W, height: rows * ROW_H, background:"#1e2433",
+            borderLeft:`2px solid ${borderColor}`, borderRight:`2px solid ${borderColor}` }}>
+            <div style={{ display:"flex", justifyContent:"space-between" }}>
+              <div>{left.map(p => <div key={p.id} style={{ height: ROW_H, display:"flex", alignItems:"center", paddingLeft:5 }}><span style={{ fontSize:8, color:"#8892a8", whiteSpace:"nowrap" }}>{p.description}</span></div>)}</div>
+              <div>{right.map(p => <div key={p.id} style={{ height: ROW_H, display:"flex", alignItems:"center", paddingRight:5 }}><span style={{ fontSize:8, color:"#8892a8", whiteSpace:"nowrap" }}>{p.description}</span></div>)}</div>
+            </div>
+          </div>
+          {/* Footer */}
+          <div style={{ position:"absolute", left: PAD_W, top: HEADER_H + rows * ROW_H, width: BODY_W, height: FOOTER_H, background:"#1e2433",
+            borderRadius:"0 0 6px 6px", borderBottom:`2px solid ${borderColor}`, borderLeft:`2px solid ${borderColor}`, borderRight:`2px solid ${borderColor}`,
+            display:"flex", alignItems:"center", justifyContent:"space-between", padding:"0 6px" }}>
+            <span style={{ fontSize:7, color:"#7a8ab0", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:100 }}>{eq.location}</span>
+            {eq.wattage > 0 && <span style={{ fontSize:7, color:"#555e7a" }}>{eq.wattage}W</span>}
+          </div>
+          {/* Left pin stubs */}
+          <div style={{ position:"absolute", left:0, top: HEADER_H, width: PAD_W }}>
+            {left.map(p => <PinRow key={p.id} p={p} side="left" />)}
+          </div>
+          {/* Right pin stubs */}
+          <div style={{ position:"absolute", right:0, top: HEADER_H, width: PAD_W }}>
+            {right.map(p => <PinRow key={p.id} p={p} side="right" />)}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function LibItem({ eq, onDragStart, blocks }) {
+function LibItem({ eq, onDragStart, blocks, onHover }) {
   const prefix   = getPrefix(eq.systemName);
   const nextName = prefix ? getNextSysName(prefix, (blocks || []).map(b => b.systemName)) : (eq.systemName || null);
   return (
     <div draggable onDragStart={e => onDragStart(e, eq)}
+      onMouseEnter={() => onHover(eq)} onMouseLeave={() => onHover(null)}
       style={{ position:"relative", padding:"8px 10px", borderRadius:7, marginBottom:6,
         background:"#1e2433", border:"0.5px solid #2d3a52", cursor:"grab", userSelect:"none" }}>
       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:2 }}>
@@ -77,6 +128,7 @@ export default function Sidebar({ blocks, onDragStart }) {
   const [filterMfr, setFilterMfr] = useState("All");
   const [filterCat, setFilterCat] = useState("All");
   const [library,   setLibrary]   = useState([]);
+  const [hoveredEq, setHoveredEq] = useState(null);
   const [dirHandle, setDirHandle] = useState(null);
   // "built-in" | "github" | "connected" | "syncing" | "saving" | "error"
   // "github" = loaded from GitHub URL, NOT a local folder — dot stays gray
@@ -301,11 +353,12 @@ export default function Sidebar({ blocks, onDragStart }) {
           </div>
         )}
         {filtered.slice(0, visibleCount).map(eq => (
-          <LibItem key={eq.id} eq={eq} blocks={blocks} onDragStart={onDragStart} />
+          <LibItem key={eq.id} eq={eq} blocks={blocks} onDragStart={onDragStart} onHover={setHoveredEq} />
         ))}
         {/* Sentinel — triggers next page load when scrolled into view */}
         <div ref={sentinelRef} style={{ height: 1 }} />
       </div>
+      {hoveredEq && <HoverPreview eq={hoveredEq} />}
     </div>
   );
 }
