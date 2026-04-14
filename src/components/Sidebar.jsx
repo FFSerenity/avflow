@@ -213,7 +213,7 @@ export default function Sidebar({ blocks, onDragStart }) {
   }[dbStatus] ?? "no local folder";
 
   return (
-    <div style={{ width:200, background:"#13161f", borderRight:"1px solid #1e2433",
+    <div onContextMenu={e => e.preventDefault()} style={{ width:200, background:"#13161f", borderRight:"1px solid #1e2433",
       display:"flex", flexDirection:"column", flexShrink:0, overflow:"hidden" }}>
       <style>{`
         .avflow-sidebar-list::-webkit-scrollbar { width: 4px; }
