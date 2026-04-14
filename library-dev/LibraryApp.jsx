@@ -522,7 +522,7 @@ function BlockEditor({ equipment, onSave, onCancel, manufacturers = [] }) {
   };
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, padding: "12px 16px", background: "var(--color-background-secondary)", borderRadius: 10, border: "0.5px solid var(--color-border-tertiary)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10, padding: "12px 16px", background: "var(--color-background-secondary)", borderRadius: 10, border: "0.5px solid var(--color-border-tertiary)", maxWidth: 720 }}>
         <div><label style={labelStyle}>Manufacturer</label>
           <input value={eq.manufacturer} onChange={e => set("manufacturer", e.target.value)}
             placeholder="e.g. Samsung" list="mfr-list" autoComplete="off" />
