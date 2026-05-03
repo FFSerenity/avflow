@@ -126,6 +126,89 @@ export async function deleteBlock(dirHandle, blockId, manufacturer, allBlocks) {
   return updated;
 }
 
+// ── Prebuilts ────────────────────────────────────────────────────────────────
+// Stored under <database>/prebuilts/<safeName>.json
+// Shared across everyone connected to the same database folder.
+
+const PREBUILTS_SUBDIR = 'prebuilts';
+
+function safePrebuiltFilename(name) {
+  if (!name || !name.trim()) return null;
+  const safe = name.trim().replace(/[^a-zA-Z0-9_\-. ]/g, '_');
+  return safe || null;
+}
+
+async function getPrebuiltsDir(dirHandle, create = false) {
+  return await dirHandle.getDirectoryHandle(PREBUILTS_SUBDIR, { create });
+}
+
+export async function readPrebuilts(dirHandle) {
+  const out = [];
+  let pdir;
+  try { pdir = await getPrebuiltsDir(dirHandle, false); }
+  catch (e) { return out; } // folder doesn't exist yet
+  for await (const [name, entry] of pdir.entries()) {
+    if (entry.kind !== 'file') continue;
+    if (!name.endsWith('.json')) continue;
+    if (name.startsWith('.')) continue;
+    try {
+      const file = await entry.getFile();
+      const data = JSON.parse(await file.text());
+      if (!data || typeof data !== 'object') continue;
+      out.push({
+        filename: name,
+        name: data.name || name.replace(/\.json$/, ''),
+        description: data.description || '',
+        savedAt: data.savedAt || null,
+        data,
+      });
+    } catch (e) {
+      console.warn(`db.js: failed to parse prebuilt ${name}`, e);
+    }
+  }
+  out.sort((a, b) => a.name.localeCompare(b.name));
+  return out;
+}
+
+export async function writePrebuilt(dirHandle, name, description, canvasData) {
+  const safe = safePrebuiltFilename(name);
+  if (!safe) throw new Error('Invalid prebuilt name');
+  const filename = `${safe}.json`;
+  const pdir = await getPrebuiltsDir(dirHandle, true);
+  const fh = await pdir.getFileHandle(filename, { create: true });
+  const writable = await fh.createWritable();
+  const payload = {
+    version: 1,
+    name: name.trim(),
+    description: description || '',
+    savedAt: new Date().toISOString(),
+    blocks: canvasData.blocks || [],
+    wires: canvasData.wires || [],
+    spares: canvasData.spares || [],
+    locBoxes: canvasData.locBoxes || [],
+    annotations: canvasData.annotations || [],
+    orphanWires: canvasData.orphanWires || [],
+  };
+  await writable.write(JSON.stringify(payload, null, 2));
+  await writable.close();
+  return { filename, ...payload };
+}
+
+export async function deletePrebuilt(dirHandle, filename) {
+  const pdir = await getPrebuiltsDir(dirHandle, false);
+  await pdir.removeEntry(filename);
+}
+
+export async function prebuiltExists(dirHandle, name) {
+  const safe = safePrebuiltFilename(name);
+  if (!safe) return false;
+  try {
+    const pdir = await getPrebuiltsDir(dirHandle, false);
+    await pdir.getFileHandle(`${safe}.json`, { create: false });
+    return true;
+  } catch (e) { return false; }
+}
+
 export async function fetchFromUrl(baseUrl = 'https://raw.githubusercontent.com/FFSerenity/avflow/main/database/') {
   const url = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
   let filenames = [];

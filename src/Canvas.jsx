@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { SIGNAL_COLORS, CABLE_PREFIX, GRID, snap, snapG, ROW_H, HEADER_H, FOOTER_H, BODY_W, PAD_W, STUB_W, DOT_R, ANNOT_COLORS } from "./constants.js";
-import { expandGroups, getPinPositions, measureText, defaultVx, smartVx, buildWaypoints, buildPath, buildHPath, buildVPathWithArcs, addTurn, removeTurn, normalizeWire, cloudPath, pinLabel, getPrefix, getNextSysName } from "./geometry.js";
+import { expandGroups, getPinPositions, measureText, defaultVx, smartVx, buildWaypoints, buildPath, buildHPath, buildVPathWithArcs, addTurn, removeTurn, normalizeWire, cloudPath, pinLabel, getPrefix, getNextSysName, getNextCableNum } from "./geometry.js";
 import BlockView from "./components/BlockView.jsx";
 import Sidebar, { SAMPLE_LIBRARY } from "./components/Sidebar.jsx";
+import { fsaSupported, loadHandle, verifyPermission, readPrebuilts, writePrebuilt, prebuiltExists } from "./db.js";
 
 
 
@@ -33,11 +34,76 @@ const ANNOT_TOOLS = [
 
 let _blockId  = 1;
 let _wireId   = 1;
-let _cableIdx = 1;
 let _locBoxId = 1;
 let _spareId  = 1;
 let _spareCableIdx = 1;
 let _annotId  = 1;
+
+// Small SVG preview for a prebuilt — renders block outlines + straight wire lines
+function PrebuiltPreview({ data }) {
+  const W = 200, H = 110, PAD = 6;
+  const blocks = Array.isArray(data?.blocks) ? data.blocks : [];
+  const wires  = Array.isArray(data?.wires) ? data.wires : [];
+  const locBoxes = Array.isArray(data?.locBoxes) ? data.locBoxes : [];
+  const blockW = PAD_W + BODY_W + PAD_W;
+  const blockH = HEADER_H + 16; // approx; pin rows vary
+  // Compute bbox
+  const xs = [], ys = [];
+  blocks.forEach(b => { xs.push(b.x, b.x + blockW); ys.push(b.y, b.y + blockH); });
+  locBoxes.forEach(lb => { xs.push(lb.x, lb.x + lb.w); ys.push(lb.y, lb.y + lb.h); });
+  if (xs.length === 0) {
+    return <div style={{ width:W, height:H, background:"#13161f", border:"0.5px solid #2d3a52",
+      borderRadius:5, display:"flex", alignItems:"center", justifyContent:"center", color:"#555e7a", fontSize:10 }}>empty</div>;
+  }
+  const minX = Math.min(...xs), maxX = Math.max(...xs);
+  const minY = Math.min(...ys), maxY = Math.max(...ys);
+  const cw = maxX - minX || 1, ch = maxY - minY || 1;
+  const scale = Math.min((W - 2*PAD) / cw, (H - 2*PAD) / ch);
+  const ox = (W - cw * scale) / 2 - minX * scale;
+  const oy = (H - ch * scale) / 2 - minY * scale;
+  const tx = (x) => x * scale + ox;
+  const ty = (y) => y * scale + oy;
+  const blockMap = new Map(blocks.map(b => [b.id, b]));
+  return (
+    <svg width={W} height={H} style={{ background:"#0e1119", borderRadius:5, border:"0.5px solid #2d3a52" }}>
+      {locBoxes.map(lb => (
+        <rect key={lb.id} x={tx(lb.x)} y={ty(lb.y)} width={lb.w*scale} height={lb.h*scale}
+          fill="none" stroke="#3d4663" strokeDasharray="2 2" strokeWidth="0.5"/>
+      ))}
+      {wires.map(w => {
+        const fb = blockMap.get(w.fromBlockId), tb = blockMap.get(w.toBlockId);
+        if (!fb || !tb) return null;
+        return <line key={w.id}
+          x1={tx(fb.x + blockW/2)} y1={ty(fb.y + blockH/2)}
+          x2={tx(tb.x + blockW/2)} y2={ty(tb.y + blockH/2)}
+          stroke={SIGNAL_COLORS[w.signal] || "#888"} strokeWidth="0.6" opacity="0.7"/>;
+      })}
+      {blocks.map(b => (
+        <rect key={b.id} x={tx(b.x)} y={ty(b.y)} width={blockW*scale} height={blockH*scale}
+          fill="#2d3555" stroke="#388bfd" strokeWidth="0.5" rx="1"/>
+      ))}
+    </svg>
+  );
+}
+
+// Bump module-level ID counters past anything in `state` so newly generated
+// IDs (e.g. `b-${_blockId++}`) never collide with existing items.
+function syncIdCounters(state) {
+  const bumpFromList = (items, regex) => {
+    let max = 0;
+    (items || []).forEach(x => {
+      const m = String(x?.id || "").match(regex);
+      if (m) { const n = parseInt(m[1], 10); if (Number.isFinite(n) && n > max) max = n; }
+    });
+    return max;
+  };
+  const bMax = bumpFromList(state.blocks, /^b-(\d+)$/);
+  const wMax = bumpFromList(state.wires,  /^w-(\d+)$/);
+  const aMax = bumpFromList(state.annotations, /^a-(\d+)$/);
+  if (_blockId <= bMax) _blockId = bMax + 1;
+  if (_wireId  <= wMax) _wireId  = wMax + 1;
+  if (_annotId <= aMax) _annotId = aMax + 1;
+}
 
 export default function AVCanvas() {
   const canvasRef   = useRef(null);
@@ -112,6 +178,38 @@ export default function AVCanvas() {
   const [orphanWires,     setOrphanWires]      = useState([]);   // persisted orphan ends
   const [draggingOrphan,  setDraggingOrphan]   = useState(null); // { orphanId, mouseCanvasX, mouseCanvasY }
   const draggingOrphanRef = useRef(null);
+
+  // ── Undo/Redo history ─────────────────────────────────────────────────────
+  const historyRef = useRef([]);  // stack of previous snapshots
+  const futureRef  = useRef([]);  // stack of redo snapshots
+  const skipNextSnapshotRef = useRef(false);
+  const lastSnapshotRef = useRef(null);
+  const HISTORY_MAX = 100;
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+  const updateHistoryFlags = () => {
+    setCanUndo(historyRef.current.length > 0);
+    setCanRedo(futureRef.current.length > 0);
+  };
+
+  // ── Save/Load state ───────────────────────────────────────────────────────
+  const [currentFilename, setCurrentFilename] = useState(null);
+  const AUTOSAVE_KEY = "avflow-canvas-autosave";
+  const [hasHydrated, setHasHydrated] = useState(false);
+  const fileInputRef = useRef(null);
+  const saveFileHandleRef = useRef(null); // FSA file handle for re-saving in place
+
+  // ── Snapshot debounce (collapse drag into single history entry) ──────
+  const pendingPushRef  = useRef(null); // first pre-change snapshot during a burst
+  const pendingTimerRef = useRef(null);
+
+  // ── Prebuilts (shared library in the connected database folder) ──────
+  const [dbDirHandle, setDbDirHandle] = useState(null);
+  const [savePrebuiltModal, setSavePrebuiltModal] = useState(null); // null | { name, description, saving }
+  const [importPrebuiltModal, setImportPrebuiltModal] = useState(null); // null | { loading, items, error }
+  const [importGhost, setImportGhost] = useState(null);
+  // importGhost: { rebased, bbox: {minX, minY, maxX, maxY}, name, mouseX, mouseY }
+  const lastCanvasMouseRef = useRef({ x: 0, y: 0 });
 
 
   // Equipment swap state
@@ -202,6 +300,18 @@ export default function AVCanvas() {
 
   // ── Mouse events on canvas ────────────────────────────────────────────────
   const onCanvasMouseMove = useCallback((e) => {
+    // Always track the latest cursor position in canvas coords — used to
+    // seed the import ghost when placement mode begins (so the bbox starts
+    // under the cursor instead of at 0,0).
+    {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const cx = (e.clientX - rect.left - pan.x) / zoom;
+      const cy = (e.clientY - rect.top  - pan.y) / zoom;
+      lastCanvasMouseRef.current = { x: cx, y: cy };
+      if (importGhost) {
+        setImportGhost(g => g ? { ...g, mouseX: cx, mouseY: cy } : g);
+      }
+    }
     // Orphan drag — update mouse canvas position
     if (draggingOrphanRef.current) {
       const rect = canvasRef.current.getBoundingClientRect();
@@ -497,6 +607,16 @@ export default function AVCanvas() {
   const onCanvasMouseDown = useCallback((e) => {
     // Block ALL canvas interactions while any text is being edited
     if (editingAnnotRef.current || editingLocBoxRef.current) return;
+    // Import placement mode: left click places, then exits mode
+    if (importGhost && e.button === 0) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      const sx = e.clientX - rect.left;
+      const sy = e.clientY - rect.top;
+      const { x: cx, y: cy } = toCanvas(sx, sy);
+      placeImportAt(cx, cy);
+      e.preventDefault();
+      return;
+    }
     if (e.button === 1 || (e.button === 0 && e.altKey)) {
       // Middle click or alt+click = pan
       const rect = canvasRef.current.getBoundingClientRect();
@@ -524,7 +644,6 @@ export default function AVCanvas() {
           const tp = allTgt.find(p => p.id === target.pinId);
           const color = SIGNAL_COLORS[sp?.signal] || "#888";
           const mismatch = sp && tp && sp.signal !== tp.signal;
-          const cableNum = `${CABLE_PREFIX[sp?.signal]||9}${String(_cableIdx++).padStart(3,"0")}`;
           const fp2 = srcBlock ? getPinPositions(srcBlock)[curFeather.fromPinId] : null;
           const tp2 = tgtBlock ? getPinPositions(tgtBlock)[target.pinId] : null;
           const initVx = smartVx(fp2, tp2);
@@ -533,7 +652,7 @@ export default function AVCanvas() {
             fromBlockId: curFeather.fromBlockId, fromPinId: curFeather.fromPinId,
             toBlockId: target.blockId, toPinId: target.pinId,
             color: mismatch ? "#E24B4A" : color,
-            dashed: mismatch, cableNum,
+            dashed: mismatch, cableNum: getNextCableNum(sp?.signal, ws, CABLE_PREFIX),
             signal: sp?.signal || "Other",
             vx: null, vx2: null, feather: true,
           }]);
@@ -575,7 +694,6 @@ export default function AVCanvas() {
           const tp = allTgt.find(p => p.id === target.pinId);
           const color = SIGNAL_COLORS[sp?.signal] || "#888";
           const mismatch = sp && tp && sp.signal !== tp.signal;
-          const cableNum = `${CABLE_PREFIX[sp?.signal]||9}${String(_cableIdx++).padStart(3,"0")}`;
           const fp2 = srcBlock ? getPinPositions(srcBlock)[currentDrawing.fromPinId] : null;
           const tp2 = tgtBlock ? getPinPositions(tgtBlock)[target.pinId] : null;
           const initVx = smartVx(fp2, tp2);
@@ -584,7 +702,7 @@ export default function AVCanvas() {
             fromBlockId: currentDrawing.fromBlockId, fromPinId: currentDrawing.fromPinId,
             toBlockId: target.blockId, toPinId: target.pinId,
             color: mismatch ? "#E24B4A" : color,
-            dashed: mismatch, cableNum,
+            dashed: mismatch, cableNum: getNextCableNum(sp?.signal, ws, CABLE_PREFIX),
             signal: sp?.signal || "Other",
             vx: initVx,
           }]);
@@ -608,7 +726,6 @@ export default function AVCanvas() {
           const tp = allTgt.find(p => p.id === target.pinId);
           const color = SIGNAL_COLORS[sp?.signal] || "#888";
           const mismatch = sp && tp && sp.signal !== tp.signal;
-          const cableNum = `${CABLE_PREFIX[sp?.signal]||9}${String(_cableIdx++).padStart(3,"0")}`;
           const fpLc = srcBlock ? getPinPositions(srcBlock)[curFeatherLc.fromPinId] : null;
           const tpLc = tgtBlock ? getPinPositions(tgtBlock)[target.pinId] : null;
           const initVxLc = smartVx(fpLc, tpLc);
@@ -617,7 +734,7 @@ export default function AVCanvas() {
             fromBlockId: curFeatherLc.fromBlockId, fromPinId: curFeatherLc.fromPinId,
             toBlockId: target.blockId, toPinId: target.pinId,
             color: mismatch ? "#E24B4A" : color,
-            dashed: mismatch, cableNum,
+            dashed: mismatch, cableNum: getNextCableNum(sp?.signal, ws, CABLE_PREFIX),
             signal: sp?.signal || "Other",
             vx: null, vx2: null, feather: true,
           }]);
@@ -775,7 +892,7 @@ export default function AVCanvas() {
       marqueeRef.current = { x1: cx, y1: cy, x2: cx, y2: cy, isAdditive: e.shiftKey || e.ctrlKey || e.metaKey };
       setMarquee({ x1: cx, y1: cy, x2: cx, y2: cy });
     }
-  }, [pan, toCanvas, findPinAny, blocks, activeTool, annotColor]);
+  }, [pan, toCanvas, findPinAny, blocks, activeTool, annotColor, importGhost]);
 
   const onCanvasMouseUp = useCallback((e) => {
     // Complete orphan drag-and-drop reconnect
@@ -792,14 +909,12 @@ export default function AVCanvas() {
           const fromPinId   = ow.orphanEnd === 'from' ? target.pinId   : ow.alivePinId;
           const toBlockId   = ow.orphanEnd === 'to'   ? target.blockId : ow.aliveBlockId;
           const toPinId     = ow.orphanEnd === 'to'   ? target.pinId   : ow.alivePinId;
-          const pfx = ow.cableNum ? '' : (CABLE_PREFIX[ow.signal] || 9);
-          const cableNum = ow.cableNum || `${pfx}${String(_cableIdx++).padStart(3,'0')}`;
           setWires(ws => [...ws, {
             id: `w-${_wireId++}`,
             fromBlockId, fromPinId, toBlockId, toPinId,
             feather: ow.feather,
             vx: null, vx2: null, turns: [],
-            cableNum,
+            cableNum: ow.cableNum || getNextCableNum(ow.signal, ws, CABLE_PREFIX),
             signal: ow.signal,
             color: SIGNAL_COLORS[ow.signal] || '#888780',
           }]);
@@ -882,7 +997,6 @@ export default function AVCanvas() {
           const tp = allTgt.find(p => p.id === target.pinId);
           const color = SIGNAL_COLORS[sp?.signal] || "#888";
           const mismatch = sp && tp && sp.signal !== tp.signal;
-          const cableNum = `${CABLE_PREFIX[sp?.signal]||9}${String(_cableIdx++).padStart(3,"0")}`;
           const fpU = srcBlock ? getPinPositions(srcBlock)[curFeatherUp.fromPinId] : null;
           const tpU = tgtBlock ? getPinPositions(tgtBlock)[target.pinId] : null;
           const initVxU = smartVx(fpU, tpU);
@@ -891,7 +1005,7 @@ export default function AVCanvas() {
             fromBlockId: curFeatherUp.fromBlockId, fromPinId: curFeatherUp.fromPinId,
             toBlockId: target.blockId, toPinId: target.pinId,
             color: mismatch ? "#E24B4A" : color,
-            dashed: mismatch, cableNum,
+            dashed: mismatch, cableNum: getNextCableNum(sp?.signal, ws, CABLE_PREFIX),
             signal: sp?.signal || "Other",
             vx: null, vx2: null, feather: true,
           }]);
@@ -931,7 +1045,6 @@ export default function AVCanvas() {
         const tp = allTgtPins.find(p => p.id === target.pinId);
         const color = SIGNAL_COLORS[sp?.signal] || "#888";
         const mismatch = sp && tp && sp.signal !== tp.signal;
-        const cableNum = `${CABLE_PREFIX[sp?.signal]||9}${String(_cableIdx++).padStart(3,"0")}`;
         const fb3 = blocks.find(b => b.id === currentDrawing.fromBlockId);
         const tb3 = blocks.find(b => b.id === target.blockId);
         const fp3 = fb3 ? getPinPositions(fb3)[currentDrawing.fromPinId] : null;
@@ -942,7 +1055,7 @@ export default function AVCanvas() {
           fromBlockId: currentDrawing.fromBlockId, fromPinId: currentDrawing.fromPinId,
           toBlockId: target.blockId, toPinId: target.pinId,
           color: mismatch ? "#E24B4A" : color,
-          dashed: mismatch, cableNum,
+          dashed: mismatch, cableNum: getNextCableNum(sp?.signal, ws, CABLE_PREFIX),
           signal: sp?.signal || "Other",
           vx: initVx2,
         }]);
@@ -1075,23 +1188,36 @@ export default function AVCanvas() {
       setSelLocBoxes(newLocBoxes);
       setSB(newBlocks); setSW(newWires);
     }
-  }, [toCanvas, findPin, blocks, zoom, annotations]);
+  }, [toCanvas, findPin, blocks, zoom, annotations, importGhost, pan]);
 
   // Scroll to zoom
+  // Refs for synchronous latest pan/zoom — avoids drift when wheel events
+  // fire faster than React re-renders (e.g. with many blocks where each
+  // render takes longer, queued wheel events would otherwise see stale zoom).
+  const zoomRef = useRef(zoom);
+  const panRef  = useRef(pan);
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
+  useEffect(() => { panRef.current  = pan;  }, [pan]);
   const onWheel = useCallback((e) => {
     e.preventDefault();
     const rect = canvasRef.current.getBoundingClientRect();
     const sx = e.clientX - rect.left;
     const sy = e.clientY - rect.top;
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    const newZoom = Math.min(3, Math.max(0.2, zoom * delta));
-    // Zoom toward cursor
-    setPan(p => ({
-      x: sx - (sx - p.x) * (newZoom / zoom),
-      y: sy - (sy - p.y) * (newZoom / zoom),
-    }));
+    const oldZoom = zoomRef.current;
+    const oldPan  = panRef.current;
+    const newZoom = Math.min(3, Math.max(0.2, oldZoom * delta));
+    const newPan = {
+      x: sx - (sx - oldPan.x) * (newZoom / oldZoom),
+      y: sy - (sy - oldPan.y) * (newZoom / oldZoom),
+    };
+    // Update refs synchronously so the next event (queued before re-render)
+    // reads the up-to-date values.
+    zoomRef.current = newZoom;
+    panRef.current  = newPan;
     setZoom(newZoom);
-  }, [zoom]);
+    setPan(newPan);
+  }, []);
 
   useEffect(() => {
     const el = canvasRef.current;
@@ -1200,9 +1326,487 @@ export default function AVCanvas() {
   const onDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; };
   const onLibDragStart = (e, eq) => { e.dataTransfer.setData("application/avflow", JSON.stringify(eq)); };
 
+  // ── Undo/Redo: debounced snapshot watcher ─────────────────────────────
+  // Collapses bursts of changes (e.g. a drag) into a single history entry by
+  // capturing only the FIRST pre-change snapshot of a burst, and committing it
+  // 300ms after the last change.
+  const flushPendingSnapshot = () => {
+    if (pendingTimerRef.current) {
+      clearTimeout(pendingTimerRef.current);
+      pendingTimerRef.current = null;
+    }
+    if (pendingPushRef.current) {
+      historyRef.current.push(pendingPushRef.current);
+      if (historyRef.current.length > HISTORY_MAX) historyRef.current.shift();
+      futureRef.current = [];
+      pendingPushRef.current = null;
+      updateHistoryFlags();
+    }
+  };
+
+  useEffect(() => {
+    const snapshot = {
+      blocks: JSON.parse(JSON.stringify(blocks)),
+      wires: JSON.parse(JSON.stringify(wires)),
+      spares: JSON.parse(JSON.stringify(spares)),
+      locBoxes: JSON.parse(JSON.stringify(locBoxes)),
+      annotations: JSON.parse(JSON.stringify(annotations)),
+      orphanWires: JSON.parse(JSON.stringify(orphanWires)),
+    };
+    if (skipNextSnapshotRef.current) {
+      skipNextSnapshotRef.current = false;
+    } else if (lastSnapshotRef.current) {
+      // First change in a burst — remember the pre-change snapshot
+      if (!pendingPushRef.current) pendingPushRef.current = lastSnapshotRef.current;
+      // Reset commit timer
+      if (pendingTimerRef.current) clearTimeout(pendingTimerRef.current);
+      pendingTimerRef.current = setTimeout(flushPendingSnapshot, 300);
+    }
+    lastSnapshotRef.current = snapshot;
+  }, [blocks, wires, spares, locBoxes, annotations, orphanWires]);
+
+  const applySnapshot = (s) => {
+    skipNextSnapshotRef.current = true;
+    setBlocks(s.blocks);
+    setWires(s.wires);
+    setSpares(s.spares);
+    setLocBoxes(s.locBoxes);
+    setAnnotations(s.annotations);
+    setOrphanWires(s.orphanWires);
+    lastSnapshotRef.current = s;
+    clearSel();
+  };
+
+  const undo = () => {
+    flushPendingSnapshot();
+    if (historyRef.current.length === 0) return;
+    const prev = historyRef.current.pop();
+    if (lastSnapshotRef.current) futureRef.current.push(lastSnapshotRef.current);
+    applySnapshot(prev);
+    updateHistoryFlags();
+  };
+
+  const redo = () => {
+    flushPendingSnapshot();
+    if (futureRef.current.length === 0) return;
+    const next = futureRef.current.pop();
+    if (lastSnapshotRef.current) historyRef.current.push(lastSnapshotRef.current);
+    applySnapshot(next);
+    updateHistoryFlags();
+  };
+
+  // ── Auto-save to localStorage (debounced) ──────────────────────────────
+  useEffect(() => {
+    if (!hasHydrated) return; // don't autosave before initial hydration completes
+    const t = setTimeout(() => {
+      try {
+        localStorage.setItem(AUTOSAVE_KEY, JSON.stringify({
+          version: 1, blocks, wires, spares, locBoxes, annotations, orphanWires
+        }));
+      } catch (e) { console.warn("autosave failed", e); }
+    }, 500);
+    return () => clearTimeout(t);
+  }, [blocks, wires, spares, locBoxes, annotations, orphanWires, hasHydrated]);
+
+  // ── Hydrate from autosave on mount ─────────────────────────────────────
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(AUTOSAVE_KEY);
+      if (raw) {
+        const data = JSON.parse(raw);
+        if (data && typeof data === "object") {
+          skipNextSnapshotRef.current = true;
+          if (Array.isArray(data.blocks)) setBlocks(data.blocks);
+          if (Array.isArray(data.wires)) setWires(data.wires);
+          if (Array.isArray(data.spares)) setSpares(data.spares);
+          if (Array.isArray(data.locBoxes)) setLocBoxes(data.locBoxes);
+          if (Array.isArray(data.annotations)) setAnnotations(data.annotations);
+          if (Array.isArray(data.orphanWires)) setOrphanWires(data.orphanWires);
+          syncIdCounters(data);
+        }
+      }
+    } catch (e) { console.warn("hydrate failed", e); }
+    setHasHydrated(true);
+  }, []);
+
+  // ── Track cursor canvas-position globally (window-level) ──────────────
+  // Canvas's onMouseMove doesn't fire reliably right after a modal closes
+  // (no synthetic event is dispatched until the user actually moves). The
+  // window listener keeps `lastCanvasMouseRef` fresh and also drives the
+  // import ghost so the bbox follows the cursor immediately after placement
+  // mode begins.
+  useEffect(() => {
+    const handler = (e) => {
+      if (!canvasRef.current) return;
+      const rect = canvasRef.current.getBoundingClientRect();
+      const cx = (e.clientX - rect.left - panRef.current.x) / zoomRef.current;
+      const cy = (e.clientY - rect.top  - panRef.current.y) / zoomRef.current;
+      lastCanvasMouseRef.current = { x: cx, y: cy };
+      if (importGhost) {
+        setImportGhost(g => g ? { ...g, mouseX: cx, mouseY: cy } : g);
+      }
+    };
+    window.addEventListener("mousemove", handler);
+    return () => window.removeEventListener("mousemove", handler);
+  }, [importGhost]);
+
+  // ── Load the shared database folder handle (for prebuilts) ────────────
+  useEffect(() => {
+    (async () => {
+      if (!fsaSupported) return;
+      try {
+        const h = await loadHandle();
+        if (!h) return;
+        const ok = await verifyPermission(h);
+        if (ok) setDbDirHandle(h);
+      } catch (e) { /* ignore */ }
+    })();
+  }, []);
+
+  // ── Save / Save As / Open ──────────────────────────────────────────────
+  const buildSaveData = () => JSON.stringify({
+    version: 1, savedAt: new Date().toISOString(),
+    blocks, wires, spares, locBoxes, annotations, orphanWires
+  }, null, 2);
+
+  const downloadFile = (filename, content) => {
+    const blob = new Blob([content], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  };
+
+  const writeViaHandle = async (handle, content) => {
+    const writable = await handle.createWritable();
+    await writable.write(content);
+    await writable.close();
+  };
+
+  const saveAs = async () => {
+    flushPendingSnapshot();
+    const suggested = currentFilename || `avflow-${new Date().toISOString().slice(0,10)}.json`;
+    const content = buildSaveData();
+    if ("showSaveFilePicker" in window) {
+      try {
+        const handle = await window.showSaveFilePicker({
+          suggestedName: suggested,
+          types: [{ description: "AVFlow Canvas", accept: { "application/json": [".json"] } }],
+        });
+        await writeViaHandle(handle, content);
+        saveFileHandleRef.current = handle;
+        setCurrentFilename(handle.name);
+      } catch (err) {
+        if (err.name !== "AbortError") alert("Save failed: " + err.message);
+      }
+    } else {
+      // Fallback (Firefox): prompt for name + Blob download
+      const name = prompt("Save as filename:", suggested);
+      if (!name || !name.trim()) return;
+      const filename = name.trim().endsWith(".json") ? name.trim() : `${name.trim()}.json`;
+      downloadFile(filename, content);
+      setCurrentFilename(filename);
+    }
+  };
+
+  const save = async () => {
+    flushPendingSnapshot();
+    const content = buildSaveData();
+    if (saveFileHandleRef.current) {
+      try {
+        await writeViaHandle(saveFileHandleRef.current, content);
+        return;
+      } catch (err) {
+        if (err.name === "NotAllowedError" || err.name === "InvalidStateError") {
+          // Permission lost — fall through to saveAs
+        } else {
+          alert("Save failed: " + err.message);
+          return;
+        }
+      }
+    }
+    if (currentFilename && !("showSaveFilePicker" in window)) {
+      // Fallback download with same filename
+      downloadFile(currentFilename, content);
+      return;
+    }
+    return saveAs();
+  };
+
+  const openFile = async () => {
+    if ("showOpenFilePicker" in window) {
+      try {
+        const [handle] = await window.showOpenFilePicker({
+          types: [{ description: "AVFlow Canvas", accept: { "application/json": [".json"] } }],
+        });
+        const file = await handle.getFile();
+        const text = await file.text();
+        const data = JSON.parse(text);
+        applyOpenedData(data);
+        saveFileHandleRef.current = handle;
+        setCurrentFilename(handle.name);
+      } catch (err) {
+        if (err.name !== "AbortError") alert("Open failed: " + err.message);
+      }
+    } else if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const applyOpenedData = (data) => {
+    if (!data || typeof data !== "object") throw new Error("Invalid file");
+    flushPendingSnapshot();
+    if (lastSnapshotRef.current) {
+      historyRef.current.push(lastSnapshotRef.current);
+      futureRef.current = [];
+    }
+    skipNextSnapshotRef.current = true;
+    setBlocks(Array.isArray(data.blocks) ? data.blocks : []);
+    setWires(Array.isArray(data.wires) ? data.wires : []);
+    setSpares(Array.isArray(data.spares) ? data.spares : []);
+    setLocBoxes(Array.isArray(data.locBoxes) ? data.locBoxes : []);
+    setAnnotations(Array.isArray(data.annotations) ? data.annotations : []);
+    setOrphanWires(Array.isArray(data.orphanWires) ? data.orphanWires : []);
+    syncIdCounters(data);
+    updateHistoryFlags();
+  };
+
+  const handleFileChosen = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      applyOpenedData(JSON.parse(text));
+      setCurrentFilename(file.name);
+      saveFileHandleRef.current = null; // legacy fallback: no FSA handle
+    } catch (err) {
+      alert("Failed to open file: " + err.message);
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  // ── Prebuilt: rebase + place ──────────────────────────────────────────
+  // Generates fresh internal IDs and renumbers system names + cable numbers
+  // against the current canvas state.
+  const rebaseImported = (data) => {
+    // CRITICAL: bump counters past the current canvas before generating new IDs
+    // so imported items never collide with existing IDs (which would cause
+    // wires to attach to the wrong blocks).
+    syncIdCounters({ blocks, wires, annotations });
+
+    const inBlocks = Array.isArray(data.blocks) ? data.blocks : [];
+    const inWires  = Array.isArray(data.wires) ? data.wires : [];
+    const inSpares = Array.isArray(data.spares) ? data.spares : [];
+    const inLocs   = Array.isArray(data.locBoxes) ? data.locBoxes : [];
+    const inAnnots = Array.isArray(data.annotations) ? data.annotations : [];
+
+    const blockIdMap = new Map(); // oldId → newId
+    const usedNames = new Set(blocks.map(b => b.systemName).filter(Boolean));
+    const newBlocks = inBlocks.map(b => {
+      const newId = `b-${_blockId++}`;
+      blockIdMap.set(b.id, newId);
+      let newSysName = b.systemName;
+      if (newSysName) {
+        const prefix = getPrefix(newSysName);
+        newSysName = getNextSysName(prefix, usedNames);
+        usedNames.add(newSysName);
+      }
+      return { ...b, id: newId, systemName: newSysName };
+    });
+
+    // Renumber wire cable numbers using a growing list
+    const growingWires = [...wires];
+    const newWires = inWires
+      .map(w => {
+        const fromId = blockIdMap.get(w.fromBlockId);
+        const toId   = blockIdMap.get(w.toBlockId);
+        // Drop wires whose endpoints didn't get rebased (shouldn't happen normally)
+        if (!fromId || !toId) return null;
+        const cableNum = getNextCableNum(w.signal, growingWires, CABLE_PREFIX);
+        const newWire = { ...w, id: `w-${_wireId++}`, fromBlockId: fromId, toBlockId: toId, cableNum };
+        growingWires.push(newWire);
+        return newWire;
+      })
+      .filter(Boolean);
+
+    const locIdMap = new Map();
+    const newLocs = inLocs.map(lb => {
+      const newId = `lb-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+      locIdMap.set(lb.id, newId);
+      return { ...lb, id: newId };
+    });
+
+    const newSpares = inSpares.map(s => {
+      const newId = `sp-${Date.now()}-${Math.random().toString(36).slice(2,7)}`;
+      return {
+        ...s,
+        id: newId,
+        fromLocBoxId: locIdMap.get(s.fromLocBoxId) || s.fromLocBoxId,
+        toLocBoxId:   locIdMap.get(s.toLocBoxId)   || s.toLocBoxId,
+      };
+    });
+
+    const newAnnots = inAnnots.map(a => ({
+      ...a,
+      id: `a-${_annotId++}`,
+    }));
+
+    // Compute bbox across positioned items
+    const xs = [], ys = [];
+    newBlocks.forEach(b => { xs.push(b.x); ys.push(b.y); });
+    newLocs.forEach(lb => { xs.push(lb.x); ys.push(lb.y); xs.push(lb.x + lb.w); ys.push(lb.y + lb.h); });
+    newAnnots.forEach(a => { if (typeof a.x === "number") { xs.push(a.x); ys.push(a.y); } });
+    const bbox = xs.length > 0
+      ? { minX: Math.min(...xs), minY: Math.min(...ys), maxX: Math.max(...xs), maxY: Math.max(...ys) }
+      : { minX: 0, minY: 0, maxX: 0, maxY: 0 };
+
+    return {
+      blocks: newBlocks, wires: newWires, spares: newSpares,
+      locBoxes: newLocs, annotations: newAnnots, bbox
+    };
+  };
+
+  const startImportFromData = (data, name = "template", clickEvent = null) => {
+    const rebased = rebaseImported(data);
+    // Seed mouse position with the click event coords if available (since the
+    // modal overlay blocks canvas mousemove while open, lastCanvasMouseRef may
+    // be stale). Fall back to the last known canvas-space cursor position.
+    let seed;
+    if (clickEvent && canvasRef.current) {
+      const rect = canvasRef.current.getBoundingClientRect();
+      seed = {
+        x: (clickEvent.clientX - rect.left - pan.x) / zoom,
+        y: (clickEvent.clientY - rect.top  - pan.y) / zoom,
+      };
+    } else {
+      seed = lastCanvasMouseRef.current || { x: 0, y: 0 };
+    }
+    setImportGhost({ rebased, bbox: rebased.bbox, name, mouseX: seed.x, mouseY: seed.y });
+    setImportPrebuiltModal(null);
+  };
+
+  const placeImportAt = (canvasX, canvasY) => {
+    if (!importGhost) return;
+    const { rebased, bbox } = importGhost;
+    const cx = (bbox.minX + bbox.maxX) / 2;
+    const cy = (bbox.minY + bbox.maxY) / 2;
+    const dx = canvasX - cx;
+    const dy = canvasY - cy;
+    const offsetXY = (item) => ({ ...item, x: (item.x ?? 0) + dx, y: (item.y ?? 0) + dy });
+    // Wire/spare bend coords (vx, vx2, turns[].vx1/vx2/vy) are absolute
+    // canvas positions and must shift with the imported content.
+    const offsetTurns = (turns) => Array.isArray(turns)
+      ? turns.map(t => ({
+          ...t,
+          ...(typeof t.vx1 === "number" ? { vx1: t.vx1 + dx } : {}),
+          ...(typeof t.vx2 === "number" ? { vx2: t.vx2 + dx } : {}),
+          ...(typeof t.vy  === "number" ? { vy:  t.vy  + dy } : {}),
+        }))
+      : turns;
+    const offsetWire = (w) => ({
+      ...w,
+      ...(typeof w.vx  === "number" ? { vx:  w.vx  + dx } : {}),
+      ...(typeof w.vx2 === "number" ? { vx2: w.vx2 + dx } : {}),
+      turns: offsetTurns(w.turns),
+    });
+
+    flushPendingSnapshot();
+    setBlocks(bs => [...bs, ...rebased.blocks.map(offsetXY)]);
+    setLocBoxes(lbs => [...lbs, ...rebased.locBoxes.map(offsetXY)]);
+    setAnnotations(as => [...as, ...rebased.annotations.map(a => {
+      const out = { ...a };
+      if (typeof a.x === "number") out.x = a.x + dx;
+      if (typeof a.y === "number") out.y = a.y + dy;
+      if (typeof a.x2 === "number") out.x2 = a.x2 + dx;
+      if (typeof a.y2 === "number") out.y2 = a.y2 + dy;
+      return out;
+    })]);
+    setSpares(ss => [...ss, ...rebased.spares.map(offsetWire)]);
+    setWires(ws => [...ws, ...rebased.wires.map(offsetWire)]);
+    setImportGhost(null);
+  };
+
+  // ── Prebuilt save/import handlers ─────────────────────────────────────
+  const ensureDirHandle = async () => {
+    if (dbDirHandle) {
+      try {
+        if (await verifyPermission(dbDirHandle)) return dbDirHandle;
+      } catch (e) { /* re-load below */ }
+    }
+    if (!fsaSupported) return null;
+    try {
+      const h = await loadHandle();
+      if (h && (await verifyPermission(h))) {
+        setDbDirHandle(h);
+        return h;
+      }
+    } catch (e) { /* ignore */ }
+    return null;
+  };
+
+  const openSavePrebuilt = async () => {
+    const h = await ensureDirHandle();
+    if (!h) {
+      alert("Connect a database folder in the sidebar first.");
+      return;
+    }
+    setSavePrebuiltModal({ name: "", description: "", saving: false });
+  };
+
+  const submitSavePrebuilt = async () => {
+    const m = savePrebuiltModal;
+    if (!m || !m.name.trim()) return;
+    const h = await ensureDirHandle();
+    if (!h) { alert("No database folder."); return; }
+    setSavePrebuiltModal({ ...m, saving: true });
+    try {
+      const exists = await prebuiltExists(h, m.name);
+      if (exists && !confirm(`A prebuilt named "${m.name}" already exists. Overwrite?`)) {
+        setSavePrebuiltModal({ ...m, saving: false });
+        return;
+      }
+      await writePrebuilt(h, m.name, m.description, {
+        blocks, wires, spares, locBoxes, annotations, orphanWires
+      });
+      setSavePrebuiltModal(null);
+    } catch (err) {
+      alert("Save prebuilt failed: " + err.message);
+      setSavePrebuiltModal({ ...m, saving: false });
+    }
+  };
+
+  const openImportPrebuilt = async () => {
+    const h = await ensureDirHandle();
+    if (!h) {
+      alert("Connect a database folder in the sidebar first.");
+      return;
+    }
+    setImportPrebuiltModal({ loading: true, items: [], error: null });
+    try {
+      const items = await readPrebuilts(h);
+      setImportPrebuiltModal({ loading: false, items, error: null });
+    } catch (err) {
+      setImportPrebuiltModal({ loading: false, items: [], error: err.message });
+    }
+  };
+
   // Delete selected block + its wires
   useEffect(() => {
     const handler = (e) => {
+      // Skip when typing in an input
+      const tag = e.target?.tagName;
+      const isInput = tag === "INPUT" || tag === "TEXTAREA" || e.target?.isContentEditable;
+      // Undo / Redo / Save / Save As / Open
+      if ((e.ctrlKey || e.metaKey) && !isInput) {
+        const k = e.key.toLowerCase();
+        if (k === "z" && !e.shiftKey) { e.preventDefault(); undo(); return; }
+        if (k === "y" || (k === "z" && e.shiftKey)) { e.preventDefault(); redo(); return; }
+        if (k === "s" && e.shiftKey) { e.preventDefault(); saveAs(); return; }
+        if (k === "s") { e.preventDefault(); save(); return; }
+        if (k === "o") { e.preventDefault(); openFile(); return; }
+      }
       if (e.key === "Delete" || e.key === "Backspace") {
         // Delete everything selected in one pass — no early returns
         const sb  = selBlocksRef.current;
@@ -1228,6 +1832,7 @@ export default function AVCanvas() {
         clearSel(); setContextMenu(null);
         marqueeRef.current = null; setMarquee(null);
         draggingOrphanRef.current = null; setDraggingOrphan(null); setSwapModal(null);
+        setImportGhost(null); setImportPrebuiltModal(null); setSavePrebuiltModal(null);
       }
     };
     window.addEventListener("keydown", handler);
@@ -2413,6 +3018,70 @@ export default function AVCanvas() {
                 {/* Chevron */}
                 <div style={{cursor:"pointer",lineHeight:1,color:"#7a8ab0",fontSize:10,transform:toolbarOpen?"rotate(180deg)":"none",transition:"transform 0.15s"}}
                   onClick={()=>setToolbarOpen(o=>!o)}>▾</div>
+                {/* Divider */}
+                <div style={{width:1,height:18,background:"#2d3a52",margin:"0 6px"}}/>
+                {/* Undo */}
+                <div title="Undo (Ctrl+Z)" onClick={undo}
+                  style={{...btnStyle(false), opacity: canUndo?1:0.35, cursor: canUndo?"pointer":"not-allowed", width:24, height:24, marginRight:2, fontSize:14}}>
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 8 L7 4 M3 8 L7 12 M3 8 H10 a3 3 0 0 1 3 3 v1"/>
+                  </svg>
+                </div>
+                {/* Redo */}
+                <div title="Redo (Ctrl+Y)" onClick={redo}
+                  style={{...btnStyle(false), opacity: canRedo?1:0.35, cursor: canRedo?"pointer":"not-allowed", width:24, height:24, marginRight:2, fontSize:14}}>
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M13 8 L9 4 M13 8 L9 12 M13 8 H6 a3 3 0 0 0 -3 3 v1"/>
+                  </svg>
+                </div>
+                {/* Divider */}
+                <div style={{width:1,height:18,background:"#2d3a52",margin:"0 6px"}}/>
+                {/* Save */}
+                <div title={`Save${currentFilename ? ` (${currentFilename})` : ""} — Ctrl+S`} onClick={save}
+                  style={{...btnStyle(false), width:24, height:24, marginRight:2}}>
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round">
+                    <path d="M2.5 2.5 H10 L13.5 6 V13.5 H2.5 Z"/>
+                    <rect x="5" y="9" width="6" height="4.5"/>
+                    <rect x="5" y="2.5" width="5" height="3.5"/>
+                  </svg>
+                </div>
+                {/* Save As */}
+                <div title="Save As — Ctrl+Shift+S" onClick={saveAs}
+                  style={{...btnStyle(false), width:24, height:24, marginRight:2}}>
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round">
+                    <path d="M2.5 2.5 H10 L13.5 6 V13.5 H2.5 Z"/>
+                    <rect x="5" y="9" width="6" height="4.5"/>
+                    <text x="10.5" y="6" fontSize="5" fill="currentColor" stroke="none" fontWeight="700">+</text>
+                  </svg>
+                </div>
+                {/* Open */}
+                <div title="Open — Ctrl+O" onClick={openFile}
+                  style={{...btnStyle(false), width:24, height:24, marginRight:2}}>
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round">
+                    <path d="M2 5 H6 L7.5 6.5 H14 V13 H2 Z"/>
+                  </svg>
+                </div>
+                {/* Divider */}
+                <div style={{width:1,height:18,background:"#2d3a52",margin:"0 6px"}}/>
+                {/* Save to Prebuilt */}
+                <div title={dbDirHandle ? "Save canvas to shared Prebuilts library" : "Connect a database folder first"}
+                  onClick={openSavePrebuilt}
+                  style={{...btnStyle(false), opacity: dbDirHandle?1:0.35, cursor: dbDirHandle?"pointer":"not-allowed", width:24, height:24, marginRight:2}}>
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round">
+                    <rect x="2.5" y="3" width="11" height="10" rx="1"/>
+                    <path d="M5 3 V6 H11 V3"/>
+                    <path d="M8 9 V12 M6.5 10.5 H9.5"/>
+                  </svg>
+                </div>
+                {/* Import Prebuilt */}
+                <div title={dbDirHandle ? "Import a Prebuilt template" : "Connect a database folder first"}
+                  onClick={openImportPrebuilt}
+                  style={{...btnStyle(false), opacity: dbDirHandle?1:0.35, cursor: dbDirHandle?"pointer":"not-allowed", width:24, height:24}}>
+                  <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round">
+                    <rect x="2.5" y="3" width="11" height="10" rx="1"/>
+                    <path d="M8 5 V10 M5.5 7.5 L8 10 L10.5 7.5"/>
+                  </svg>
+                </div>
               </div>
 
               {/* Dropdown */}
@@ -2450,6 +3119,103 @@ export default function AVCanvas() {
             </div>
           );
         })()}
+
+        {/* Hidden file input for Open */}
+        <input ref={fileInputRef} type="file" accept=".json,application/json"
+          onChange={handleFileChosen} style={{ display:"none" }} />
+
+        {/* ── Save Prebuilt modal ── */}
+        {savePrebuiltModal && (
+          <div style={{ position:"fixed", inset:0, zIndex:600, background:"rgba(0,0,0,0.5)",
+            display:"flex", alignItems:"center", justifyContent:"center" }}
+            onClick={() => !savePrebuiltModal.saving && setSavePrebuiltModal(null)}>
+            <div onClick={e => e.stopPropagation()}
+              style={{ background:"#1e2433", border:"0.5px solid #2d3a52", borderRadius:10,
+                padding:"18px 20px", width:420, color:"#c8d0e8", boxShadow:"0 8px 32px rgba(0,0,0,0.6)" }}>
+              <div style={{ fontSize:14, fontWeight:600, marginBottom:14 }}>Save to Prebuilts</div>
+              <div style={{ fontSize:11, color:"#7a8ab0", marginBottom:4 }}>Name</div>
+              <input value={savePrebuiltModal.name}
+                onChange={e => setSavePrebuiltModal(m => ({ ...m, name: e.target.value }))}
+                placeholder="e.g. Standard Classroom"
+                style={{ width:"100%", background:"#13161f", border:"0.5px solid #2d3a52",
+                  borderRadius:5, color:"#c8d0e8", fontSize:13, padding:"7px 10px",
+                  outline:"none", boxSizing:"border-box", marginBottom:12 }} autoFocus />
+              <div style={{ fontSize:11, color:"#7a8ab0", marginBottom:4 }}>Description</div>
+              <textarea value={savePrebuiltModal.description}
+                onChange={e => setSavePrebuiltModal(m => ({ ...m, description: e.target.value }))}
+                placeholder="Brief description (use keywords for searchability)"
+                rows={4}
+                style={{ width:"100%", background:"#13161f", border:"0.5px solid #2d3a52",
+                  borderRadius:5, color:"#c8d0e8", fontSize:12, padding:"7px 10px",
+                  outline:"none", boxSizing:"border-box", resize:"vertical", fontFamily:"inherit" }} />
+              <div style={{ display:"flex", gap:8, justifyContent:"flex-end", marginTop:14 }}>
+                <button onClick={() => setSavePrebuiltModal(null)} disabled={savePrebuiltModal.saving}
+                  style={{ fontSize:12, padding:"6px 14px", cursor:"pointer", borderRadius:5,
+                    background:"#13161f", border:"0.5px solid #2d3a52", color:"#8892a8" }}>Cancel</button>
+                <button onClick={submitSavePrebuilt}
+                  disabled={!savePrebuiltModal.name.trim() || savePrebuiltModal.saving}
+                  style={{ fontSize:12, padding:"6px 14px", cursor:"pointer", borderRadius:5,
+                    background:"#2d3555", border:"0.5px solid #388bfd", color:"#a8d4ff",
+                    opacity: (!savePrebuiltModal.name.trim() || savePrebuiltModal.saving) ? 0.4 : 1 }}>
+                  {savePrebuiltModal.saving ? "Saving…" : "Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── Import Prebuilt modal ── */}
+        {importPrebuiltModal && (
+          <div style={{ position:"fixed", inset:0, zIndex:600, background:"rgba(0,0,0,0.5)",
+            display:"flex", alignItems:"center", justifyContent:"center" }}
+            onClick={() => setImportPrebuiltModal(null)}>
+            <div onClick={e => e.stopPropagation()}
+              style={{ background:"#1e2433", border:"0.5px solid #2d3a52", borderRadius:10,
+                padding:"18px 20px", width:760, maxHeight:"80vh", display:"flex", flexDirection:"column",
+                color:"#c8d0e8", boxShadow:"0 8px 32px rgba(0,0,0,0.6)" }}>
+              <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:14 }}>
+                <div style={{ fontSize:14, fontWeight:600 }}>Import Prebuilt Template</div>
+                <button onClick={() => setImportPrebuiltModal(null)}
+                  style={{ fontSize:12, padding:"5px 12px", cursor:"pointer", borderRadius:5,
+                    background:"#13161f", border:"0.5px solid #2d3a52", color:"#8892a8" }}>Close</button>
+              </div>
+              {importPrebuiltModal.loading && <div style={{ padding:30, textAlign:"center", color:"#7a8ab0" }}>Loading…</div>}
+              {importPrebuiltModal.error && <div style={{ padding:20, color:"#E24B4A" }}>Error: {importPrebuiltModal.error}</div>}
+              {!importPrebuiltModal.loading && !importPrebuiltModal.error && importPrebuiltModal.items.length === 0 && (
+                <div style={{ padding:30, textAlign:"center", color:"#7a8ab0", fontSize:12 }}>
+                  No prebuilts in this database folder yet.<br/>
+                  Build something on the canvas, then click <b>Save to Prebuilts</b>.
+                </div>
+              )}
+              {!importPrebuiltModal.loading && importPrebuiltModal.items.length > 0 && (
+                <div style={{ flex:1, overflowY:"auto",
+                  display:"grid", gridTemplateColumns:"repeat(auto-fill, minmax(220px, 1fr))", gap:12 }}>
+                  {importPrebuiltModal.items.map(item => (
+                    <div key={item.filename}
+                      onClick={(e) => startImportFromData(item.data, item.name, e)}
+                      style={{ background:"#13161f", border:"0.5px solid #2d3a52", borderRadius:8,
+                        padding:10, cursor:"pointer", display:"flex", flexDirection:"column", gap:6 }}
+                      onMouseEnter={e => e.currentTarget.style.borderColor = "#388bfd"}
+                      onMouseLeave={e => e.currentTarget.style.borderColor = "#2d3a52"}>
+                      <PrebuiltPreview data={item.data} />
+                      <div style={{ fontSize:13, fontWeight:500, color:"#c8d0e8" }}>{item.name}</div>
+                      {item.description && (
+                        <div style={{ fontSize:11, color:"#8892a8", lineHeight:1.4,
+                          display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", overflow:"hidden" }}>
+                          {item.description}
+                        </div>
+                      )}
+                      <div style={{ fontSize:10, color:"#555e7a", marginTop:"auto" }}>
+                        {(item.data.blocks?.length || 0)} blocks · {(item.data.wires?.length || 0)} wires
+                        {(item.data.locBoxes?.length || 0) > 0 && ` · ${item.data.locBoxes.length} zones`}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Spare cable run modal */}
         {spareModal && (() => {
@@ -3145,6 +3911,39 @@ export default function AVCanvas() {
                 </div>
               </div>
             </div>
+          );
+        })()}
+
+        {/* Import ghost — bbox at cursor + info panel */}
+        {importGhost && (() => {
+          const { rebased, bbox, mouseX, mouseY, name } = importGhost;
+          const cx = (bbox.minX + bbox.maxX) / 2;
+          const cy = (bbox.minY + bbox.maxY) / 2;
+          const dx = mouseX - cx, dy = mouseY - cy;
+          // Ghost bbox in screen coords
+          const sx1 = (bbox.minX + dx) * zoom + pan.x;
+          const sy1 = (bbox.minY + dy) * zoom + pan.y;
+          const sw  = (bbox.maxX - bbox.minX) * zoom;
+          const sh  = (bbox.maxY - bbox.minY) * zoom;
+          return (
+            <>
+              <svg style={{ position:"absolute", inset:0, width:"100%", height:"100%", pointerEvents:"none", zIndex:55 }}>
+                <rect x={sx1} y={sy1} width={sw} height={sh}
+                  fill="rgba(56,139,253,0.06)" stroke="#388bfd" strokeWidth={1.5} strokeDasharray="6 4"/>
+                <circle cx={mouseX * zoom + pan.x} cy={mouseY * zoom + pan.y} r={4} fill="#388bfd"/>
+              </svg>
+              <div style={{ position:"absolute", top:60, right:12, zIndex:300,
+                background:"#1e2433ee", border:"0.5px solid #388bfd", borderRadius:6,
+                padding:"8px 12px", color:"#c8d0e8", fontSize:11, pointerEvents:"none",
+                boxShadow:"0 4px 16px rgba(0,0,0,0.4)" }}>
+                <div style={{ fontWeight:600, marginBottom:3, color:"#a8d4ff" }}>📥 Importing: {name}</div>
+                <div style={{ color:"#8892a8" }}>
+                  {rebased.blocks.length} blocks · {rebased.wires.length} wires
+                  {rebased.locBoxes.length > 0 && ` · ${rebased.locBoxes.length} zones`}
+                </div>
+                <div style={{ color:"#555e7a", marginTop:4, fontSize:10 }}>Click to place · Esc to cancel</div>
+              </div>
+            </>
           );
         })()}
 

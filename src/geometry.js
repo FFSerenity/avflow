@@ -170,6 +170,22 @@ export function getNextSysName(prefix, usedNames) {
   return `${prefix}${String(i).padStart(2,"0")}`;
 }
 
+// Gap-filling cable number generator. Builds the set of cable numbers already
+// used for the same signal-prefix and returns the lowest unused 3-digit suffix.
+// Pass `cablePrefixMap` (e.g. CABLE_PREFIX) so geometry.js stays decoupled from constants.
+export function getNextCableNum(signal, existingWires, cablePrefixMap) {
+  const prefix = (cablePrefixMap && cablePrefixMap[signal]) || 9;
+  const used = new Set();
+  (existingWires || []).forEach(w => {
+    if (typeof w?.cableNum === "string" && w.cableNum.startsWith(String(prefix))) {
+      used.add(w.cableNum);
+    }
+  });
+  let i = 1;
+  while (used.has(`${prefix}${String(i).padStart(3,"0")}`)) i++;
+  return `${prefix}${String(i).padStart(3,"0")}`;
+}
+
 // ── Wire crossing arc helpers ─────────────────────────────────────────────
 // buildHPath and buildVPathWithArcs power the two-pass wire render in Canvas.jsx
 // that keeps vertical segments always on top of horizontal ones.
