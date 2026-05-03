@@ -2,8 +2,8 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { SIGNAL_COLORS, CABLE_PREFIX, GRID, snap, snapG, ROW_H, HEADER_H, FOOTER_H, BODY_W, PAD_W, STUB_W, DOT_R, ANNOT_COLORS } from "./constants.js";
 import { expandGroups, getPinPositions, measureText, defaultVx, smartVx, buildWaypoints, buildPath, buildHPath, buildVPathWithArcs, addTurn, removeTurn, normalizeWire, cloudPath, pinLabel, getPrefix, getNextSysName, getNextCableNum } from "./geometry.js";
 import BlockView from "./components/BlockView.jsx";
-import Sidebar, { SAMPLE_LIBRARY } from "./components/Sidebar.jsx";
-import { fsaSupported, loadHandle, verifyPermission, readPrebuilts, writePrebuilt, prebuiltExists } from "./db.js";
+import Sidebar from "./components/Sidebar.jsx";
+import { fsaSupported, loadHandle, verifyPermission, pickDirectory, readPrebuilts, writePrebuilt, prebuiltExists, readAllBlocks, fetchFromUrl } from "./db.js";
 
 
 
@@ -203,8 +203,13 @@ export default function AVCanvas() {
   const pendingPushRef  = useRef(null); // first pre-change snapshot during a burst
   const pendingTimerRef = useRef(null);
 
-  // ── Prebuilts (shared library in the connected database folder) ──────
-  const [dbDirHandle, setDbDirHandle] = useState(null);
+  // ── Shared equipment library + database folder ─────────────────────
+  // Single source of truth for both the Sidebar (drag source) and Canvas
+  // (swap modal, prebuilts). Sidebar consumes these via props.
+  const [library, setLibrary] = useState([]);
+  const [dirHandle, setDirHandle] = useState(null);
+  // "built-in" | "github" | "connected" | "syncing" | "saving" | "error"
+  const [dbStatus, setDbStatus] = useState("built-in");
   const [savePrebuiltModal, setSavePrebuiltModal] = useState(null); // null | { name, description, saving }
   const [importPrebuiltModal, setImportPrebuiltModal] = useState(null); // null | { loading, items, error }
   const [importGhost, setImportGhost] = useState(null);
@@ -220,6 +225,7 @@ export default function AVCanvas() {
 
   // Drag state
   const dragging = useRef(null); // { blockId, startMouseX, startMouseY, startBlockX, startBlockY }
+  const [draggingIds, setDraggingIds] = useState(null); // Set of block IDs currently being dragged — drives alignment guides
   const panning  = useRef(null); // { startMouseX, startMouseY, startPanX, startPanY }
   const mouseDownPos = useRef(null); // { x, y } — to distinguish click vs drag
 
@@ -931,6 +937,7 @@ export default function AVCanvas() {
     const wasDraggingBlocks = !!dragging.current;
     panning.current = null;
     dragging.current = null;
+    if (draggingIds) setDraggingIds(null);
     wireDrag.current = null;
     locBoxDrag.current = null;
     const wasAnnotDrag = annotWasDragged.current;
@@ -1274,6 +1281,7 @@ export default function AVCanvas() {
       selAnnotIds, startAnnotPositions,
       selLbIds, startLocBoxPositions,
     };
+    setDraggingIds(new Set(selectedIds));
   }, [blocks]);
 
   // Drop from sidebar
@@ -1395,6 +1403,34 @@ export default function AVCanvas() {
     updateHistoryFlags();
   };
 
+  // ── Clear stored vx when a wire becomes effectively straight ──────────
+  // If both pins land on the same horizontal grid line, the bend point is
+  // invisible (zero-length vertical segment). We null out vx so:
+  //   1. Cable number labels position correctly (use natural midpoint)
+  //   2. If the wire bends again later, the bend reappears at the new
+  //      midpoint of the pins, not the stale saved vx.
+  // Flagged to skip undo-snapshot so this cleanup doesn't pollute history.
+  useEffect(() => {
+    setWires(ws => {
+      let changed = false;
+      const next = ws.map(w => {
+        if (w.feather) return w;
+        if (w.vx == null) return w;
+        if (w.turns && w.turns.length > 0) return w;
+        const fb = blocks.find(b => b.id === w.fromBlockId);
+        const tb = blocks.find(b => b.id === w.toBlockId);
+        if (!fb || !tb) return w;
+        const fp = getPinPositions(fb)[w.fromPinId];
+        const tp = getPinPositions(tb)[w.toPinId];
+        if (!fp || !tp) return w;
+        if (fp.y === tp.y) { changed = true; return { ...w, vx: null }; }
+        return w;
+      });
+      if (changed) skipNextSnapshotRef.current = true;
+      return changed ? next : ws;
+    });
+  }, [blocks]);
+
   // ── Auto-save to localStorage (debounced) ──────────────────────────────
   useEffect(() => {
     if (!hasHydrated) return; // don't autosave before initial hydration completes
@@ -1450,18 +1486,66 @@ export default function AVCanvas() {
     return () => window.removeEventListener("mousemove", handler);
   }, [importGhost]);
 
-  // ── Load the shared database folder handle (for prebuilts) ────────────
+  // ── Load shared library + database handle on mount ────────────────────
+  // Try connected FSA folder first → fall back to GitHub fetch.
   useEffect(() => {
     (async () => {
-      if (!fsaSupported) return;
+      if (fsaSupported) {
+        const h = await loadHandle().catch(() => null);
+        if (h) {
+          const ok = await verifyPermission(h).catch(() => false);
+          if (ok) {
+            setDirHandle(h);
+            setDbStatus("syncing");
+            try {
+              const data = await readAllBlocks(h);
+              if (data.length > 0) setLibrary(data);
+              setDbStatus("connected");
+              return;
+            } catch (e) { console.error("db sync error", e); setDbStatus("error"); return; }
+          }
+        }
+      }
       try {
-        const h = await loadHandle();
-        if (!h) return;
-        const ok = await verifyPermission(h);
-        if (ok) setDbDirHandle(h);
-      } catch (e) { /* ignore */ }
+        const fetched = await fetchFromUrl();
+        if (fetched.length > 0) setLibrary(fetched);
+      } catch (_) {}
+      setDbStatus("built-in");
     })();
   }, []);
+
+  // ── Sidebar callbacks ─────────────────────────────────────────────────
+  const handlePickFolder = async () => {
+    try {
+      const h = await pickDirectory();
+      setDirHandle(h);
+      setDbStatus("syncing");
+      const data = await readAllBlocks(h);
+      if (data.length > 0) setLibrary(data);
+      setDbStatus("connected");
+    } catch (e) {
+      if (e.name !== "AbortError") { console.error(e); setDbStatus("error"); }
+    }
+  };
+
+  const handleSync = async () => {
+    if (dirHandle) {
+      setDbStatus("syncing");
+      try {
+        const ok = await verifyPermission(dirHandle);
+        if (!ok) { setDbStatus("error"); return; }
+        const data = await readAllBlocks(dirHandle);
+        if (data.length > 0) setLibrary(data);
+        setDbStatus("connected");
+      } catch (e) { console.error(e); setDbStatus("error"); }
+    } else {
+      try {
+        const d = await fetchFromUrl();
+        if (d.length > 0) setLibrary(d);
+      } catch (e) { console.error(e); }
+      setDbStatus("built-in");
+    }
+  };
 
   // ── Save / Save As / Open ──────────────────────────────────────────────
   const buildSaveData = () => JSON.stringify({
@@ -1692,8 +1776,11 @@ export default function AVCanvas() {
     const { rebased, bbox } = importGhost;
     const cx = (bbox.minX + bbox.maxX) / 2;
     const cy = (bbox.minY + bbox.maxY) / 2;
-    const dx = canvasX - cx;
-    const dy = canvasY - cy;
+    // Snap the offset to the grid so imported blocks/wires land aligned —
+    // since the saved positions were already on the grid, the difference
+    // staying on-grid keeps everything snapped after placement.
+    const dx = snap(canvasX - cx);
+    const dy = snap(canvasY - cy);
     const offsetXY = (item) => ({ ...item, x: (item.x ?? 0) + dx, y: (item.y ?? 0) + dy });
     // Wire/spare bend coords (vx, vx2, turns[].vx1/vx2/vy) are absolute
     // canvas positions and must shift with the imported content.
@@ -1730,16 +1817,16 @@ export default function AVCanvas() {
 
   // ── Prebuilt save/import handlers ─────────────────────────────────────
   const ensureDirHandle = async () => {
-    if (dbDirHandle) {
+    if (dirHandle) {
       try {
-        if (await verifyPermission(dbDirHandle)) return dbDirHandle;
+        if (await verifyPermission(dirHandle)) return dirHandle;
       } catch (e) { /* re-load below */ }
     }
     if (!fsaSupported) return null;
     try {
       const h = await loadHandle();
       if (h && (await verifyPermission(h))) {
-        setDbDirHandle(h);
+        setDirHandle(h);
         return h;
       }
     } catch (e) { /* ignore */ }
@@ -2002,7 +2089,9 @@ export default function AVCanvas() {
       <style>{`@keyframes orphan-pulse { 0%,100%{opacity:0.5;r:13} 50%{opacity:0.15;r:18} }`}</style>
 
       {/* ── Sidebar ── */}
-      <Sidebar blocks={blocks} onDragStart={onLibDragStart} />
+      <Sidebar blocks={blocks} onDragStart={onLibDragStart}
+        library={library} dirHandle={dirHandle} dbStatus={dbStatus}
+        onPickFolder={handlePickFolder} onSync={handleSync} />
 
       {/* ── Canvas ── */}
       <div ref={canvasRef}
@@ -2011,7 +2100,7 @@ export default function AVCanvas() {
         onMouseMove={onCanvasMouseMove}
         onMouseDown={onCanvasMouseDown}
         onMouseUp={onCanvasMouseUp}
-        onMouseLeave={() => { panning.current = null; dragging.current = null; if (drawing) { setDrawing(null); setHoveredPin(null); } }}
+        onMouseLeave={() => { panning.current = null; dragging.current = null; setDraggingIds(null); if (drawing) { setDrawing(null); setHoveredPin(null); } }}
         onContextMenu={e => {
           e.preventDefault();
           if (featherDrawingRef.current) return;
@@ -3064,9 +3153,9 @@ export default function AVCanvas() {
                 {/* Divider */}
                 <div style={{width:1,height:18,background:"#2d3a52",margin:"0 6px"}}/>
                 {/* Save to Prebuilt */}
-                <div title={dbDirHandle ? "Save canvas to shared Prebuilts library" : "Connect a database folder first"}
+                <div title={dirHandle ? "Save canvas to shared Prebuilts library" : "Connect a database folder first"}
                   onClick={openSavePrebuilt}
-                  style={{...btnStyle(false), opacity: dbDirHandle?1:0.35, cursor: dbDirHandle?"pointer":"not-allowed", width:24, height:24, marginRight:2}}>
+                  style={{...btnStyle(false), opacity: dirHandle?1:0.35, cursor: dirHandle?"pointer":"not-allowed", width:24, height:24, marginRight:2}}>
                   <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round">
                     <rect x="2.5" y="3" width="11" height="10" rx="1"/>
                     <path d="M5 3 V6 H11 V3"/>
@@ -3074,9 +3163,9 @@ export default function AVCanvas() {
                   </svg>
                 </div>
                 {/* Import Prebuilt */}
-                <div title={dbDirHandle ? "Import a Prebuilt template" : "Connect a database folder first"}
+                <div title={dirHandle ? "Import a Prebuilt template" : "Connect a database folder first"}
                   onClick={openImportPrebuilt}
-                  style={{...btnStyle(false), opacity: dbDirHandle?1:0.35, cursor: dbDirHandle?"pointer":"not-allowed", width:24, height:24}}>
+                  style={{...btnStyle(false), opacity: dirHandle?1:0.35, cursor: dirHandle?"pointer":"not-allowed", width:24, height:24}}>
                   <svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinejoin="round">
                     <rect x="2.5" y="3" width="11" height="10" rx="1"/>
                     <path d="M8 5 V10 M5.5 7.5 L8 10 L10.5 7.5"/>
@@ -3815,10 +3904,10 @@ export default function AVCanvas() {
         {swapModal && (() => {
           const oldBlock = blocks.find(b => b.id === swapModal.blockId);
           if (!oldBlock) return null;
-          const allMfrs = ['All', ...Array.from(new Set(SAMPLE_LIBRARY.map(e => e.manufacturer).filter(Boolean))).sort()];
-          const allCats = ['All', ...Array.from(new Set(SAMPLE_LIBRARY.map(e => e.category).filter(Boolean))).sort()];
+          const allMfrs = ['All', ...Array.from(new Set(library.map(e => e.manufacturer).filter(Boolean))).sort()];
+          const allCats = ['All', ...Array.from(new Set(library.map(e => e.category).filter(Boolean))).sort()];
           const q = swapSearch.toLowerCase();
-          const filtered = SAMPLE_LIBRARY.filter(eq => {
+          const filtered = library.filter(eq => {
             const matchQ = !q || eq.manufacturer?.toLowerCase().includes(q) || eq.model?.toLowerCase().includes(q);
             const matchC = swapCat === 'All' || eq.category === swapCat;
             const matchM = swapMfr === 'All' || eq.manufacturer === swapMfr;
@@ -3911,6 +4000,61 @@ export default function AVCanvas() {
                 </div>
               </div>
             </div>
+          );
+        })()}
+
+        {/* Alignment guides — show during block drag when an edge of a
+            dragged block lines up with an edge of any other block */}
+        {draggingIds && draggingIds.size > 0 && (() => {
+          const dragged = blocks.filter(b => draggingIds.has(b.id));
+          const others  = blocks.filter(b => !draggingIds.has(b.id));
+          if (dragged.length === 0 || others.length === 0) return null;
+          const xSet = new Set();
+          const ySet = new Set();
+          for (const d of dragged) {
+            const db = blockBBox(d);
+            const dbBL = db.x + PAD_W;            // body left edge (excludes pin stubs)
+            const dbBR = db.x + PAD_W + BODY_W;   // body right edge
+            for (const o of others) {
+              const ob = blockBBox(o);
+              const obBL = ob.x + PAD_W;
+              const obBR = ob.x + PAD_W + BODY_W;
+              // Vertical guides — body left/right edges match
+              if (dbBL === obBL) xSet.add(dbBL);
+              if (dbBL === obBR) xSet.add(dbBL);
+              if (dbBR === obBL) xSet.add(dbBR);
+              if (dbBR === obBR) xSet.add(dbBR);
+              // Horizontal guides — top/bottom edges match (block edge same as body edge vertically)
+              if (db.y === ob.y)               ySet.add(db.y);
+              if (db.y === ob.y + ob.h)        ySet.add(db.y);
+              if (db.y + db.h === ob.y)        ySet.add(db.y + db.h);
+              if (db.y + db.h === ob.y + ob.h) ySet.add(db.y + db.h);
+            }
+          }
+          if (xSet.size === 0 && ySet.size === 0) return null;
+          // Compute viewport extent in canvas coords so lines span fully
+          const rect = canvasRef.current?.getBoundingClientRect();
+          const W = rect?.width  ?? 4000;
+          const H = rect?.height ?? 4000;
+          const vL = (0  - pan.x) / zoom;
+          const vR = (W  - pan.x) / zoom;
+          const vT = (0  - pan.y) / zoom;
+          const vB = (H  - pan.y) / zoom;
+          const COLOR = "#22d3ee";
+          return (
+            <svg style={{ position:"absolute", inset:0, width:"100%", height:"100%",
+              pointerEvents:"none", zIndex:45, overflow:"visible" }}>
+              <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}>
+                {[...xSet].map(x => (
+                  <line key={`vx-${x}`} x1={x} y1={vT} x2={x} y2={vB}
+                    stroke={COLOR} strokeWidth={1 / zoom} shapeRendering="crispEdges"/>
+                ))}
+                {[...ySet].map(y => (
+                  <line key={`hy-${y}`} x1={vL} y1={y} x2={vR} y2={y}
+                    stroke={COLOR} strokeWidth={1 / zoom} shapeRendering="crispEdges"/>
+                ))}
+              </g>
+            </svg>
           );
         })()}
 

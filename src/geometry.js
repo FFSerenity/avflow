@@ -61,6 +61,10 @@ export function smartVx(fp, tp) {
 export function buildWaypoints(x1, y1, x2, y2, vx, turns) {
   turns = turns || [];
   if (turns.length === 0) {
+    // Pins on the same horizontal line — render as a straight segment so
+    // there's no zero-length vertical bend to grab. `vx` is left untouched
+    // in the wire's state, so the bend reappears the moment y1 ≠ y2 again.
+    if (y1 === y2) return [{x:x1,y:y1},{x:x2,y:y2}];
     const v = vx ?? defaultVx(x1, x2);
     return [{x:x1,y:y1},{x:v,y:y1},{x:v,y:y2},{x:x2,y:y2}];
   }

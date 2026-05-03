@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { SIGNAL_COLORS, ROW_H, HEADER_H, FOOTER_H, BODY_W, PAD_W, STUB_W, DOT_R } from "../constants.js";
 import { expandGroups, getPrefix, getNextSysName } from "../geometry.js";
-import { fsaSupported, loadHandle, saveHandle, verifyPermission, pickDirectory, readAllBlocks, fetchFromUrl } from "../db.js";
+import { fsaSupported } from "../db.js";
 
 // Empty — library is populated entirely from the connected database folder or GitHub fetch
 const SAMPLE_LIBRARY = [];
@@ -169,50 +169,16 @@ function LibItem({ eq, onDragStart, blocks, onHover }) {
   );
 }
 
-export default function Sidebar({ blocks, onDragStart }) {
+export default function Sidebar({ blocks, onDragStart, library, dirHandle, dbStatus, onPickFolder, onSync }) {
   const [search,    setSearch]    = useState("");
   const [filterMfr, setFilterMfr] = useState("All");
   const [filterCat, setFilterCat] = useState("All");
-  const [library,   setLibrary]   = useState([]);
   const [hoveredEq, setHoveredEq] = useState(null);
-  const [dirHandle, setDirHandle] = useState(null);
-  // "built-in" | "github" | "connected" | "syncing" | "saving" | "error"
-  // "github" = loaded from GitHub URL, NOT a local folder — dot stays gray
-  const [dbStatus,  setDbStatus]  = useState("built-in");
 
   const PAGE_SIZE = 50;
   const [visibleCount,    setVisibleCount]    = useState(50);
   const sentinelRef     = useRef(null);
   const hasDefaultedMfr = useRef(false);
-
-  // On mount: try local FSA folder first, fall back to GitHub fetch (dot stays gray)
-  useEffect(() => {
-    (async () => {
-      // Try to restore a previously connected local folder
-      if (fsaSupported) {
-        const h = await loadHandle().catch(() => null);
-        if (h) {
-          const ok = await verifyPermission(h).catch(() => false);
-          if (ok) {
-            setDirHandle(h);
-            setDbStatus("syncing");
-            try {
-              const data = await readAllBlocks(h);
-              if (data.length > 0) { setLibrary(data); setDbStatus("connected"); return; }
-            } catch (e) { console.error("db sync error", e); }
-            setDbStatus("connected");
-            return;
-          }
-        }
-      }
-      // No local folder — fetch from GitHub silently (dot stays gray)
-      try {
-        const fetched = await fetchFromUrl();
-        if (fetched.length > 0) setLibrary(fetched);
-      } catch (_) {}
-      setDbStatus("built-in");
-    })();
-  }, []);
 
   // Default to first manufacturer once real data arrives
   useEffect(() => {
@@ -236,40 +202,6 @@ export default function Sidebar({ blocks, onDragStart }) {
     obs.observe(el);
     return () => obs.disconnect();
   }, [search, filterMfr, filterCat]);
-
-  const handlePickFolder = async () => {
-    try {
-      const h = await pickDirectory();
-      setDirHandle(h);
-      setDbStatus("syncing");
-      const data = await readAllBlocks(h);
-      if (data.length > 0) setLibrary(data);
-      setDbStatus("connected");
-    } catch (e) {
-      if (e.name !== "AbortError") { console.error(e); setDbStatus("error"); }
-    }
-  };
-
-  const handleSync = async () => {
-    if (dirHandle) {
-      // Local folder connected — sync from disk
-      setDbStatus("syncing");
-      try {
-        const ok = await verifyPermission(dirHandle);
-        if (!ok) { setDbStatus("error"); return; }
-        const data = await readAllBlocks(dirHandle);
-        if (data.length > 0) setLibrary(data);
-        setDbStatus("connected");
-      } catch (e) { console.error(e); setDbStatus("error"); }
-    } else {
-      // No local folder — re-fetch from GitHub silently (dot stays gray)
-      try {
-        const d = await fetchFromUrl();
-        if (d.length > 0) setLibrary(d);
-      } catch (e) { console.error(e); }
-      setDbStatus("built-in");
-    }
-  };
 
   const manufacturers = ["All", ...new Set(library.map(e => e.manufacturer))];
   const categories    = ["All", ...[...new Set(library.map(e => e.category).filter(Boolean))].sort()];
@@ -341,7 +273,7 @@ export default function Sidebar({ blocks, onDragStart }) {
               style={{ width:6, height:6, borderRadius:"50%", background:statusColor, flexShrink:0 }} />
             <span style={{ fontSize:10, color:statusColor }}>{statusLabel}</span>
           </div>
-          <button onClick={handleSync} disabled={dbStatus === "syncing"}
+          <button onClick={onSync} disabled={dbStatus === "syncing"}
             title="Reload blocks from local folder (or GitHub if no folder connected)"
             style={{ fontSize:10, padding:"2px 7px", cursor:"pointer", borderRadius:4,
               background:"#1e2433", border:"0.5px solid #2d3a52", color:"#8892a8",
@@ -350,7 +282,7 @@ export default function Sidebar({ blocks, onDragStart }) {
           </button>
         </div>
         {fsaSupported ? (
-          <button onClick={handlePickFolder}
+          <button onClick={onPickFolder}
             title="Connect a local database folder to load blocks from JSON files"
             style={{ width:"100%", fontSize:11, padding:"5px 0", cursor:"pointer", borderRadius:5,
               background:"#1e2433", border:"0.5px solid #2d3a52", color:"#8892a8" }}>
